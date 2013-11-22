@@ -14,7 +14,7 @@ import (
 type Auth func(*http.Request) (int, error)
 
 type Actor interface {
-	OnReceive(uid int, data []byte) error
+	OnReceive(uid int, data []byte) ([]int, error)
 	Ping() []byte
 	Bye(reason string) []byte
 }

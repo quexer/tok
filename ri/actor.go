@@ -7,45 +7,65 @@ import (
 	"code.google.com/p/goprotobuf/proto"
 	"fmt"
 	"github.com/quexer/kodec"
-	"log"
 	"github.com/quexer/tok"
+	"log"
 	"time"
 )
 
 type Checker interface {
-	AllowChat(from int, to string) bool
-	OnDispatch(interface{})
+	CheckUp(from int, to string) bool
+	CheckDown(target int, v *kodec.Msg) bool
+	PostDispatch(target int, v *kodec.Msg)
+	ParseAddr(to string) ([]int, error)
 }
 
 type Actor struct {
 	checker Checker
 }
 
-func (p *Actor) OnReceive(uid int, data []byte) error {
+func (p *Actor) OnReceive(uid int, data []byte) ([]int, error) {
 	m, err := kodec.Unboxing(data)
 	if err != nil {
 		log.Println("decode err ", err)
-		return err
+		return nil, err
 	}
 
 	switch v := m.(type) {
 	case *kodec.Msg:
 		v.From = proto.Int64(int64(uid))
 		v.Ct = proto.Int64(tick())
-		//	log.Println("dispatch msg")
 		if v.GetTp() != kodec.Msg_SYS {
-			//check non-system message
 			from := int(v.GetFrom())
 			to := v.GetTo()
-			if !p.checker.AllowChat(from, to) {
-				return fmt.Errorf("warning: chat not allow, %d -> %v \n", from, to)
+			if !p.checker.CheckUp(from, to) {
+				return nil, fmt.Errorf("warning: chat not allow, %d -> %v \n", from, to)
 			}
 		}
-		p.checker.OnDispatch(v)
-		return nil
+		return p.dispatchMsg(v)
 	default:
-		return fmt.Errorf("unknown data frame")
+		return nil, fmt.Errorf("unknown data frame")
 	}
+}
+
+func (p *Actor) dispatchMsg(v *kodec.Msg) ([]int, error) {
+	uids := []int{}
+	targets, err := p.checker.ParseAddr(v.GetTo())
+	if err != nil {
+		log.Println("parse addr err", err)
+		return nil, err
+	}
+
+	from := int(v.GetFrom())
+	for _, target := range targets {
+		if target == from || !p.checker.CheckDown(target, v) {
+			continue
+		}
+
+		uids = append(uids, target)
+		go p.checker.PostDispatch(target, v)
+	}
+
+	return uids, nil
 }
 
 func (p *Actor) Ping() []byte {
