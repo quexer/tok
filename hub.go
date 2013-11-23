@@ -47,6 +47,7 @@ func (p *Hub) run() {
 				p.offline(state.con)
 				expOnline.Add(-1)
 			}
+			go p.actor.OnChange(state.con.uid, state.online)
 		case f := <-p.chUp:
 			//			log.Println("up data")
 			expUp.Add(1)
