@@ -73,13 +73,13 @@ func (p *Hub) run() {
 }
 
 func (p *Hub) up(f *frame) {
-	targets, err := p.actor.OnReceive(f.uid, f.data)
+	targets, b, err := p.actor.OnReceive(f.uid, f.data)
 	if err != nil {
-		log.Println("reply err ", err)
+		log.Println("reply err", err)
 		return
 	}
 	for _, uid := range targets {
-		p.Send(uid, f.data, true)
+		p.Send(uid, b, true)
 	}
 }
 

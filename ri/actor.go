@@ -24,27 +24,39 @@ type Actor struct {
 	checker Checker
 }
 
-func (p *Actor) OnReceive(uid int, data []byte) ([]int, error) {
+func (p *Actor) OnReceive(uid int, data []byte) ([]int, []byte, error) {
 	m, err := kodec.Unboxing(data)
 	if err != nil {
 		log.Println("decode err ", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	switch v := m.(type) {
 	case *kodec.Msg:
 		v.From = proto.Int64(int64(uid))
 		v.Ct = proto.Int64(tick())
+
+		b, err := kodec.Boxing(v)
+		if err != nil {
+			log.Println("build replay binary err", err)
+			return nil, nil, err
+		}
+
 		if v.GetTp() != kodec.Msg_SYS {
 			from := int(v.GetFrom())
 			to := v.GetTo()
 			if !p.checker.CheckUp(from, to) {
-				return nil, fmt.Errorf("warning: chat not allow, %d -> %v \n", from, to)
+				return nil, nil, fmt.Errorf("warning: chat not allow, %d -> %v \n", from, to)
 			}
 		}
-		return p.dispatchMsg(v)
+		target, err := p.dispatchMsg(v)
+		if err != nil {
+			log.Println("dispatch err", err)
+			return nil, nil, err
+		}
+		return target, b, err
 	default:
-		return nil, fmt.Errorf("unknown data frame")
+		return nil, nil, fmt.Errorf("unknown data frame")
 	}
 }
 
@@ -69,7 +81,7 @@ func (p *Actor) dispatchMsg(v *kodec.Msg) ([]int, error) {
 	return uids, nil
 }
 
-func (p *Actor) OnChange(uid int, online bool){
+func (p *Actor) OnChange(uid int, online bool) {
 	p.checker.UserStateChange(uid, online)
 }
 
