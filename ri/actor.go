@@ -17,7 +17,6 @@ type Checker interface {
 	CheckDown(target int, v *kodec.Msg) bool
 	PostDispatch(target int, v *kodec.Msg)
 	ParseAddr(to string) ([]int, error)
-	UserStateChange(target int, online bool)
 }
 
 type Actor struct {
@@ -79,10 +78,6 @@ func (p *Actor) dispatchMsg(v *kodec.Msg) ([]int, error) {
 	}
 
 	return uids, nil
-}
-
-func (p *Actor) OnChange(uid int, online bool) {
-	p.checker.UserStateChange(uid, online)
 }
 
 func (p *Actor) Ping() []byte {
