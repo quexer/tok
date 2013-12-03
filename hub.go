@@ -42,11 +42,10 @@ func (p *Hub) run() {
 
 			if state.online {
 				p.online(state.con)
-				expOnline.Add(1)
 			} else {
 				p.offline(state.con)
-				expOnline.Add(-1)
 			}
+			expOnline.Set(int64(len(p.cons)))
 		case f := <-p.chUp:
 			//			log.Println("up data")
 			expUp.Add(1)
