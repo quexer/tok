@@ -12,7 +12,7 @@ import (
 type func_ping func() []byte
 
 type connection struct {
-	uid     int
+	uid     interface{}
 	adapter ConAdapter
 	ticker  *time.Ticker
 	ch      chan []byte
@@ -72,7 +72,7 @@ func (conn *connection) close() {
 }
 
 //block on read
-func initConnection(uid int, adapter ConAdapter, hub *Hub) {
+func initConnection(uid interface{}, adapter ConAdapter, hub *Hub) {
 	//	log.Println("new conection ", uid)
 
 	conn := &connection{

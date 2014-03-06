@@ -13,17 +13,17 @@ import (
 )
 
 type Checker interface {
-	CheckUp(from int, to string) bool
-	CheckDown(target int, v *kodec.Msg) bool
-	PostDispatch(target int, v *kodec.Msg)
-	ParseAddr(to string) ([]int, error)
+	CheckUp(from interface{}, to string) bool
+	CheckDown(target interface{}, v *kodec.Msg) bool
+	PostDispatch(target interface{}, v *kodec.Msg)
+	ParseAddr(to string) ([]interface{}, error)
 }
 
 type Actor struct {
 	checker Checker
 }
 
-func (p *Actor) OnReceive(uid int, data []byte) ([]int, []byte, error) {
+func (p *Actor) OnReceive(uid interface {}, data []byte) ([]interface {}, []byte, error) {
 	m, err := kodec.Unboxing(data)
 	if err != nil {
 		log.Println("decode err ", err)
@@ -32,7 +32,7 @@ func (p *Actor) OnReceive(uid int, data []byte) ([]int, []byte, error) {
 
 	switch v := m.(type) {
 	case *kodec.Msg:
-		v.From = proto.Int64(int64(uid))
+		v.From = proto.Int64(int64(uid.(int)))
 		v.Ct = proto.Int64(tick())
 
 		b, err := kodec.Boxing(v)
@@ -59,8 +59,8 @@ func (p *Actor) OnReceive(uid int, data []byte) ([]int, []byte, error) {
 	}
 }
 
-func (p *Actor) dispatchMsg(v *kodec.Msg) ([]int, error) {
-	uids := []int{}
+func (p *Actor) dispatchMsg(v *kodec.Msg) ([]interface {}, error) {
+	uids := []interface{}{}
 	targets, err := p.checker.ParseAddr(v.GetTo())
 	if err != nil {
 		log.Println("parse addr err", err)

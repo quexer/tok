@@ -11,18 +11,18 @@ import (
 	"net/http"
 )
 
-type Auth func(*http.Request) (int, error)
+type Auth func(*http.Request) (interface{}, error)
 
 type Actor interface {
-	OnReceive(uid int, data []byte) ([]int, []byte, error)
+	OnReceive(uid interface{}, data []byte) ([]interface{}, []byte, error)
 	Ping() []byte
 	Bye(reason string) []byte
 }
 
 type Queue interface {
-	Enq(uid int, data []byte) error
-	Deq(uid int) ([]byte, error)
-	Len(uid int) (int, error)
+	Enq(uid interface{}, data []byte) error
+	Deq(uid interface{}) ([]byte, error)
+	Len(uid interface{}) (int, error)
 }
 
 func CreateHub(actor Actor, q Queue, sso bool) *Hub {
@@ -30,12 +30,12 @@ func CreateHub(actor Actor, q Queue, sso bool) *Hub {
 		sso:          sso,
 		actor:        actor,
 		q:            q,
-		cons:         make(map[int][]*connection),
+		cons:         make(map[interface{}][]*connection),
 		chUp:         make(chan *frame),
 		chDown:       make(chan *frame),
 		chDown2:      make(chan *frame),
 		chConState:   make(chan *conState),
-		chReadSignal: make(chan int, 100),
+		chReadSignal: make(chan interface{}, 100),
 	}
 	go hub.run()
 	return hub

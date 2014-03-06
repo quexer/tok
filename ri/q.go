@@ -32,15 +32,15 @@ func createPool(server, auth string) *redis.Pool {
 	}
 }
 
-func qname(uid int) string {
-	return fmt.Sprintf("q%d", uid)
+func qname(uid interface{}) string {
+	return fmt.Sprintf("q%v", uid)
 }
 
 type queue struct {
 	pool *redis.Pool
 }
 
-func (p *queue) Len(uid int) (int, error) {
+func (p *queue) Len(uid interface{}) (int, error) {
 	c := p.pool.Get()
 	defer c.Close()
 
@@ -56,7 +56,7 @@ func (p *queue) Len(uid int) (int, error) {
 	return i, err
 }
 
-func (p *queue) Enq(uid int, data []byte) error {
+func (p *queue) Enq(uid interface{}, data []byte) error {
 	c := p.pool.Get()
 	defer c.Close()
 
@@ -70,7 +70,7 @@ func (p *queue) Enq(uid int, data []byte) error {
 	return err
 }
 
-func (p *queue) Deq(uid int) ([]byte, error) {
+func (p *queue) Deq(uid interface{}) ([]byte, error) {
 	c := p.pool.Get()
 	defer c.Close()
 

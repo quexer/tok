@@ -18,7 +18,7 @@ var (
 )
 
 type frame struct {
-	uid  int
+	uid  interface{}
 	data []byte
 }
 
@@ -26,12 +26,12 @@ type Hub struct {
 	sso          bool
 	actor        Actor
 	q            Queue
-	cons         map[int][]*connection //connection list
+	cons         map[interface{}][]*connection //connection list
 	chUp         chan *frame
 	chDown       chan *frame //for online user
 	chDown2      chan *frame //for all user
 	chConState   chan *conState
-	chReadSignal chan int
+	chReadSignal chan interface{}
 }
 
 func (p *Hub) run() {
@@ -81,7 +81,7 @@ func (p *Hub) up(f *frame) {
 	}
 }
 
-func (p *Hub) popMsg(uid int) {
+func (p *Hub) popMsg(uid interface{}) {
 	for {
 		b, err := p.q.Deq(uid)
 		if err != nil {
@@ -97,7 +97,7 @@ func (p *Hub) popMsg(uid int) {
 	}
 }
 
-func (p *Hub) Send(to int, b []byte, cacheIfOffline bool) {
+func (p *Hub) Send(to interface{}, b []byte, cacheIfOffline bool) {
 	f := &frame{uid: to, data: b}
 	if cacheIfOffline {
 		p.chDown2 <- f
@@ -167,7 +167,7 @@ func (p *Hub) online(conn *connection) {
 	p.startRead(conn.uid)
 }
 
-func (p *Hub) startRead(uid int) {
+func (p *Hub) startRead(uid interface{}) {
 	p.chReadSignal <- uid
 }
 
