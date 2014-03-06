@@ -55,12 +55,8 @@ func (p *tcpAdapter) Write(b []byte) error {
 	if err := binary.Write(buf, binary.BigEndian, &n); err != nil {
 		return err
 	}
+	_, err := p.conn.Write(append(buf.Bytes(), b...))
 
-	if _, err := p.conn.Write(buf.Bytes()); err != nil {
-		return err
-	}
-
-	_, err := p.conn.Write(b)
 	return err
 }
 
