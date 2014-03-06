@@ -15,7 +15,7 @@ type Auth func(*http.Request) (interface{}, error)
 
 type Actor interface {
 	OnReceive(uid interface{}, data []byte) ([]interface{}, []byte, error)
-	Ping() []byte
+	Ping() []byte //build ping data.  ping will be ignored if return nil
 	Bye(reason string) []byte
 }
 
