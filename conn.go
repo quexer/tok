@@ -54,7 +54,10 @@ func (conn *connection) write(chState chan<- *conState) {
 			//			log.Println("down msg for ", conn)
 			conn.innerWrite(chState, b)
 		case <-conn.ticker.C:
-			conn.innerWrite(chState, conn.ping())
+			b := conn.ping()
+			if b != nil {
+				conn.innerWrite(chState, conn.ping())
+			}
 		}
 	}
 
