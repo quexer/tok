@@ -25,7 +25,16 @@ type Queue interface {
 	Len(uid interface{}) (int, error)
 }
 
+// create hub with memory queue and sso enabled
+func CreateDefaultHub(actor Actor) *Hub {
+	return CreateHub(actor, nil, true)
+}
+
+//create hub, if q is nil, a memory based queue is used
 func CreateHub(actor Actor, q Queue, sso bool) *Hub {
+	if q == nil {
+		q = CreateMemQ()
+	}
 	hub := &Hub{
 		sso:          sso,
 		actor:        actor,
