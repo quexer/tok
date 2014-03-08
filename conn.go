@@ -16,7 +16,7 @@ type connection struct {
 	adapter ConAdapter
 	ticker  *time.Ticker
 	ch      chan []byte
-	ping    func_ping
+	actor   Actor
 }
 
 type conState struct {
@@ -54,9 +54,8 @@ func (conn *connection) write(chState chan<- *conState) {
 			//			log.Println("down msg for ", conn)
 			conn.innerWrite(chState, b)
 		case <-conn.ticker.C:
-			b := conn.ping()
-			if b != nil {
-				conn.innerWrite(chState, conn.ping())
+			if b := conn.actor.Ping(); b != nil {
+				conn.innerWrite(chState, b)
 			}
 		}
 	}
@@ -83,7 +82,7 @@ func initConnection(uid interface{}, adapter ConAdapter, hub *Hub) {
 		adapter: adapter,
 		ch:      make(chan []byte, 256),
 		ticker:  time.NewTicker(30 * 1e9),
-		ping:    hub.actor.Ping,
+		actor:    hub.actor,
 	}
 
 	hub.chConState <- &conState{conn, true}
