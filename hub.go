@@ -32,6 +32,8 @@ type Hub struct {
 	chDown2      chan *frame //for all user
 	chConState   chan *conState
 	chReadSignal chan interface{}
+	chQueryOnline chan chan []interface {}
+
 }
 
 func (p *Hub) run() {
@@ -41,9 +43,9 @@ func (p *Hub) run() {
 			//			log.Printf("connection state change: %v, %v \n", state.online, &state.con)
 
 			if state.online {
-				p.online(state.con)
+				p.goOnline(state.con)
 			} else {
-				p.offline(state.con)
+				p.goOffline(state.con)
 			}
 			expOnline.Set(int64(len(p.cons)))
 		case f := <-p.chUp:
@@ -66,6 +68,12 @@ func (p *Hub) run() {
 			if len(p.cons[uid]) > 0 {
 				go p.popMsg(uid)
 			}
+		case chOnline := <- p.chQueryOnline:
+			result := make([]interface {}, 0, len(p.cons))
+			for uid := range p.cons{
+				result = append(result, uid)
+			}
+			chOnline <- result
 		}
 	}
 }
@@ -97,6 +105,7 @@ func (p *Hub) popMsg(uid interface{}) {
 	}
 }
 
+//send message to hub
 func (p *Hub) Send(to interface{}, b []byte, cacheIfOffline bool) {
 	f := &frame{uid: to, data: b}
 	if cacheIfOffline {
@@ -104,6 +113,13 @@ func (p *Hub) Send(to interface{}, b []byte, cacheIfOffline bool) {
 	} else {
 		p.chDown <- f
 	}
+}
+
+//query online user list
+func (p *Hub) Online()[]interface {}{
+	ch := make(chan []interface {})
+	p.chQueryOnline <- ch
+	return <-ch
 }
 
 func (p *Hub) cache(f *frame) {
@@ -118,7 +134,7 @@ func (p *Hub) down(f *frame) {
 	}
 }
 
-func (p *Hub) offline(conn *connection) {
+func (p *Hub) goOffline(conn *connection) {
 	l := p.cons[conn.uid]
 	rest := connExclude(l, conn)
 
@@ -136,7 +152,7 @@ func (p *Hub) offline(conn *connection) {
 	conn.close()
 }
 
-func (p *Hub) online(conn *connection) {
+func (p *Hub) goOnline(conn *connection) {
 	l := p.cons[conn.uid]
 	if l == nil {
 		l = []*connection{conn}

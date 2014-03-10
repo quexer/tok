@@ -38,7 +38,7 @@ func (p *tcpAdapter) Read() ([]byte, error) {
 	}
 
 	if n > TCP_MAX_PACK_LEN {
-		return nil, fmt.Errorf("may be error pack length: %dk", n/1024/1024)
+		return nil, fmt.Errorf("may be error pack length: %dM", n/1024/1024)
 	}
 
 	b = make([]byte, n)
