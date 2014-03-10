@@ -16,8 +16,11 @@ import (
 )
 
 const (
-	TCP_HEADER_LEN   = 4
-	TCP_MAX_PACK_LEN = 4 * 1024 * 1024
+	tcp_header_len = 4
+)
+
+var (
+	TCP_MAX_PACK_LEN uint32 = 4 * 1024 * 1024 //upper limit for single message
 )
 
 type tcpAdapter struct {
@@ -26,7 +29,7 @@ type tcpAdapter struct {
 
 func (p *tcpAdapter) Read() ([]byte, error) {
 	//read header
-	b := make([]byte, TCP_HEADER_LEN)
+	b := make([]byte, tcp_header_len)
 	if _, err := io.ReadFull(p.conn, b); err != nil {
 		return nil, err
 	}
@@ -38,7 +41,7 @@ func (p *tcpAdapter) Read() ([]byte, error) {
 	}
 
 	if n > TCP_MAX_PACK_LEN {
-		return nil, fmt.Errorf("may be error pack length: %dM", n/1024/1024)
+		return nil, fmt.Errorf("pack length %dM can't greater than %dM", n/1024/1024, TCP_MAX_PACK_LEN/1024/1024)
 	}
 
 	b = make([]byte, n)
@@ -64,8 +67,20 @@ func (p *tcpAdapter) Close() {
 	p.conn.Close()
 }
 
-func CreateTcpListener(auth Auth, hub *Hub, addr string) error {
-	listener, err := net.Listen("tcp", addr)
+//Config to create tcp listener
+type TcpConfig struct {
+	Auth Auth
+	Addr string
+}
+
+func Listen(hubConfig *HubConfig, config *TcpConfig) (*Hub, error) {
+	hub := createHub(hubConfig.Actor, hubConfig.Q, hubConfig.Sso)
+	return hub, ListenWithHub(hub, config)
+}
+
+func ListenWithHub(hub *Hub, config *TcpConfig) error {
+
+	listener, err := net.Listen("tcp", config.Addr)
 	if err != nil {
 		return err
 	}
@@ -80,7 +95,7 @@ func CreateTcpListener(auth Auth, hub *Hub, addr string) error {
 				return
 			}
 			r := &http.Request{Header: http.Header{"Cookie": {string(b)}}}
-			uid, err := auth(r)
+			uid, err := config.Auth(r)
 			if err != nil {
 				log.Println("401", err)
 				adapter.Write(hub.actor.Bye("unauthorized"))

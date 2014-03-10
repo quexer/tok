@@ -39,17 +39,24 @@ func (p *wsAdapter) Close() {
 	p.conn.Close()
 }
 
-//create binary ws handler
-func CreateWsHandler(auth Auth, hub *Hub) http.Handler {
-	return CreateWsHandlerEx(auth, hub, false)
+type WsConfig struct {
+	Auth Auth //auth method
+	Txt  bool //turn on text frame in web socket
 }
 
-//create ws handler, txt parameter is binary/text frame flag
-func CreateWsHandlerEx(auth Auth, hub *Hub, txt bool) http.Handler {
+//Create Hub and http handler
+func CreateWsHandler(hubConfig *HubConfig, config *WsConfig) (*Hub, http.Handler) {
+	hub := createHub(hubConfig.Actor, hubConfig.Q, hubConfig.Sso)
+	return hub, CreateWsHandlerWithHub(hub, config)
+
+}
+
+//Create http handler with existing Hub
+func CreateWsHandlerWithHub(hub *Hub, config *WsConfig) http.Handler {
 	return websocket.Handler(func(ws *websocket.Conn) {
-		adapter := &wsAdapter{conn: ws, txt: txt}
+		adapter := &wsAdapter{conn: ws, txt: config.Txt}
 		r := ws.Request()
-		uid, err := auth(r)
+		uid, err := config.Auth(r)
 		if err != nil {
 			log.Println("401", err)
 			adapter.Write(hub.actor.Bye("unauthorized"))

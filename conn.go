@@ -82,7 +82,7 @@ func initConnection(uid interface{}, adapter ConAdapter, hub *Hub) {
 		adapter: adapter,
 		ch:      make(chan []byte, 256),
 		ticker:  time.NewTicker(30 * 1e9),
-		actor:    hub.actor,
+		actor:   hub.actor,
 	}
 
 	hub.chConState <- &conState{conn, true}

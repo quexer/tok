@@ -22,18 +22,44 @@ type frame struct {
 	data []byte
 }
 
-type Hub struct {
-	sso          bool
-	actor        Actor
-	q            Queue
-	cons         map[interface{}][]*connection //connection list
-	chUp         chan *frame
-	chDown       chan *frame //for online user
-	chDown2      chan *frame //for all user
-	chConState   chan *conState
-	chReadSignal chan interface{}
-	chQueryOnline chan chan []interface {}
+//Config to create new Hub
+type HubConfig struct {
+	Actor Actor //Actor implement dispatch logic
+	Q     Queue //Message Q, if nil, a memory based queue will be used
+	Sso   bool  //If it's true, new connection will kick off old ones with same uid
+}
 
+//Dispatch message between connections
+type Hub struct {
+	sso           bool
+	actor         Actor
+	q             Queue
+	cons          map[interface{}][]*connection //connection list
+	chUp          chan *frame
+	chDown        chan *frame //for online user
+	chDown2       chan *frame //for all user
+	chConState    chan *conState
+	chReadSignal  chan interface{}
+	chQueryOnline chan chan []interface{}
+}
+
+func createHub(actor Actor, q Queue, sso bool) *Hub {
+	if q == nil {
+		q = CreateMemQ()
+	}
+	hub := &Hub{
+		sso:          sso,
+		actor:        actor,
+		q:            q,
+		cons:         make(map[interface{}][]*connection),
+		chUp:         make(chan *frame),
+		chDown:       make(chan *frame),
+		chDown2:      make(chan *frame),
+		chConState:   make(chan *conState),
+		chReadSignal: make(chan interface{}, 100),
+	}
+	go hub.run()
+	return hub
 }
 
 func (p *Hub) run() {
@@ -68,12 +94,13 @@ func (p *Hub) run() {
 			if len(p.cons[uid]) > 0 {
 				go p.popMsg(uid)
 			}
-		case chOnline := <- p.chQueryOnline:
-			result := make([]interface {}, 0, len(p.cons))
-			for uid := range p.cons{
+		case chOnline := <-p.chQueryOnline:
+			result := make([]interface{}, 0, len(p.cons))
+			for uid := range p.cons {
 				result = append(result, uid)
 			}
 			chOnline <- result
+			close(chOnline)
 		}
 	}
 }
@@ -105,7 +132,7 @@ func (p *Hub) popMsg(uid interface{}) {
 	}
 }
 
-//send message to hub
+//Send message to someone
 func (p *Hub) Send(to interface{}, b []byte, cacheIfOffline bool) {
 	f := &frame{uid: to, data: b}
 	if cacheIfOffline {
@@ -115,9 +142,9 @@ func (p *Hub) Send(to interface{}, b []byte, cacheIfOffline bool) {
 	}
 }
 
-//query online user list
-func (p *Hub) Online()[]interface {}{
-	ch := make(chan []interface {})
+//Query online user list
+func (p *Hub) Online() []interface{} {
+	ch := make(chan []interface{})
 	p.chQueryOnline <- ch
 	return <-ch
 }

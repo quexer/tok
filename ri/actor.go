@@ -23,7 +23,7 @@ type Actor struct {
 	checker Checker
 }
 
-func (p *Actor) OnReceive(uid interface {}, data []byte) ([]interface {}, []byte, error) {
+func (p *Actor) OnReceive(uid interface{}, data []byte) ([]interface{}, []byte, error) {
 	m, err := kodec.Unboxing(data)
 	if err != nil {
 		log.Println("decode err ", err)
@@ -59,7 +59,7 @@ func (p *Actor) OnReceive(uid interface {}, data []byte) ([]interface {}, []byte
 	}
 }
 
-func (p *Actor) dispatchMsg(v *kodec.Msg) ([]interface {}, error) {
+func (p *Actor) dispatchMsg(v *kodec.Msg) ([]interface{}, error) {
 	uids := []interface{}{}
 	targets, err := p.checker.ParseAddr(v.GetTo())
 	if err != nil {
