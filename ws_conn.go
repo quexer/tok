@@ -39,8 +39,9 @@ func (p *wsAdapter) Close() {
 	p.conn.Close()
 }
 
+//Config to create web socket handler
 type WsConfig struct {
-	Auth Auth //auth method
+	Auth Auth //auth function
 	Txt  bool //turn on text frame in web socket
 }
 

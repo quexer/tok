@@ -69,8 +69,8 @@ func (p *tcpAdapter) Close() {
 
 //Config to create tcp listener
 type TcpConfig struct {
-	Auth Auth
-	Addr string
+	Auth Auth   // auth function
+	Addr string // address string
 }
 
 func Listen(hubConfig *HubConfig, config *TcpConfig) (*Hub, error) {
