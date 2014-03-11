@@ -11,10 +11,9 @@ import (
 	"net/http"
 )
 
-type Auth func(*http.Request) (interface{}, error)
-
 type Actor interface {
-	OnReceive(uid interface{}, data []byte) ([]interface{}, []byte, error)
+	Auth(r *http.Request) (interface{}, error) //auth against http request. return uid if auth success
+	OnReceive(uid interface{}, data []byte)
 	Ping() []byte //build ping data.  ping will be ignored if return nil
 	Bye(reason string) []byte
 }

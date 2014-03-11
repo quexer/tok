@@ -81,7 +81,7 @@ func (p *Hub) run() {
 		case f := <-p.chUp:
 			//			log.Println("up data")
 			expUp.Add(1)
-			go p.up(f)
+			go p.actor.OnReceive(f.uid, f.data)
 		case f := <-p.chDown:
 			expDown.Add(1)
 			p.down(f)
@@ -106,17 +106,6 @@ func (p *Hub) run() {
 			chOnline <- result
 			close(chOnline)
 		}
-	}
-}
-
-func (p *Hub) up(f *frame) {
-	targets, b, err := p.actor.OnReceive(f.uid, f.data)
-	if err != nil {
-		log.Println("reply err", err)
-		return
-	}
-	for _, uid := range targets {
-		p.Send(uid, b, true)
 	}
 }
 

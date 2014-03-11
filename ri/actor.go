@@ -9,25 +9,27 @@ import (
 	"github.com/quexer/kodec"
 	"github.com/quexer/tok"
 	"log"
+	"net/http"
 	"time"
 )
 
 type Checker interface {
 	CheckUp(from interface{}, to string) bool
 	CheckDown(target interface{}, v *kodec.Msg) bool
-	PostDispatch(target interface{}, v *kodec.Msg)
+	Dispatch(targets []interface{}, v *kodec.Msg)
 	ParseAddr(to string) ([]interface{}, error)
+	Auth(r *http.Request) (interface{}, error)
 }
 
 type Actor struct {
 	checker Checker
 }
 
-func (p *Actor) OnReceive(uid interface{}, data []byte) ([]interface{}, []byte, error) {
+func (p *Actor) OnReceive(uid interface{}, data []byte) {
 	m, err := kodec.Unboxing(data)
 	if err != nil {
 		log.Println("decode err ", err)
-		return nil, nil, err
+		return
 	}
 
 	switch v := m.(type) {
@@ -35,36 +37,26 @@ func (p *Actor) OnReceive(uid interface{}, data []byte) ([]interface{}, []byte, 
 		v.From = proto.Int64(int64(uid.(int)))
 		v.Ct = proto.Int64(tick())
 
-		b, err := kodec.Boxing(v)
-		if err != nil {
-			log.Println("build replay binary err", err)
-			return nil, nil, err
-		}
-
 		if v.GetTp() != kodec.Msg_SYS {
 			from := int(v.GetFrom())
 			to := v.GetTo()
 			if !p.checker.CheckUp(from, to) {
-				return nil, nil, fmt.Errorf("warning: chat not allow, %d -> %v \n", from, to)
+				log.Println(fmt.Errorf("warning: chat not allow, %d -> %v \n", from, to))
+				return
 			}
 		}
-		target, err := p.dispatchMsg(v)
-		if err != nil {
-			log.Println("dispatch err", err)
-			return nil, nil, err
-		}
-		return target, b, err
+		p.dispatchMsg(v)
 	default:
-		return nil, nil, fmt.Errorf("unknown data frame")
+		log.Println(fmt.Errorf("unknown data frame"))
 	}
 }
 
-func (p *Actor) dispatchMsg(v *kodec.Msg) ([]interface{}, error) {
+func (p *Actor) dispatchMsg(v *kodec.Msg) {
 	uids := []interface{}{}
 	targets, err := p.checker.ParseAddr(v.GetTo())
 	if err != nil {
 		log.Println("parse addr err", err)
-		return nil, err
+		return
 	}
 
 	from := int(v.GetFrom())
@@ -72,12 +64,10 @@ func (p *Actor) dispatchMsg(v *kodec.Msg) ([]interface{}, error) {
 		if target == from || !p.checker.CheckDown(target, v) {
 			continue
 		}
-
 		uids = append(uids, target)
-		go p.checker.PostDispatch(target, v)
 	}
 
-	return uids, nil
+	go p.checker.Dispatch(uids, v)
 }
 
 func (p *Actor) Ping() []byte {
@@ -94,6 +84,10 @@ func (p *Actor) Bye(reason string) []byte {
 		log.Panic("build bye err", err)
 	}
 	return b
+}
+
+func (p *Actor) Auth(r *http.Request) (interface{}, error) {
+	return p.checker.Auth(r)
 }
 
 func tick() int64 {

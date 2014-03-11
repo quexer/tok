@@ -67,20 +67,18 @@ func (p *tcpAdapter) Close() {
 	p.conn.Close()
 }
 
-//Config to create tcp listener
-type TcpConfig struct {
-	Auth Auth   // auth function
-	Addr string // address string
-}
-
-func Listen(hubConfig *HubConfig, config *TcpConfig) (*Hub, error) {
+//Create hub with hubConfig, then create Tcp listener on addr
+//return hub
+func Listen(hubConfig *HubConfig, addr string) (*Hub, error) {
 	hub := createHub(hubConfig.Actor, hubConfig.Q, hubConfig.Sso)
-	return hub, ListenWithHub(hub, config)
+	return hub, ListenWithHub(hub, addr)
 }
 
-func ListenWithHub(hub *Hub, config *TcpConfig) error {
+//Create Tcp listener with existing hub.
+//return error if create listener failed
+func ListenWithHub(hub *Hub, addr string) error {
 
-	listener, err := net.Listen("tcp", config.Addr)
+	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
 	}
@@ -95,7 +93,7 @@ func ListenWithHub(hub *Hub, config *TcpConfig) error {
 				return
 			}
 			r := &http.Request{Header: http.Header{"Cookie": {string(b)}}}
-			uid, err := config.Auth(r)
+			uid, err := hub.actor.Auth(r)
 			if err != nil {
 				log.Println("401", err)
 				adapter.Write(hub.actor.Bye("unauthorized"))
