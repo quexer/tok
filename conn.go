@@ -25,11 +25,11 @@ type conState struct {
 }
 
 //ConAdapter if adapter for real connection.
-//For now, net.Conn and  websocket.Conn are supported.
+//For now, net.Conn and websocket.Conn are supported.
 //This interface is useful for building test application
 type ConAdapter interface {
-	Read() ([]byte, error) //Read payload data from real connection. Unpack basic data frame
-	Write([]byte) error    //Write payload data to real connection. Pack data with basic frame
+	Read() ([]byte, error) //Read payload data from real connection. Unpack from basic data frame
+	Write([]byte) error    //Write payload data to real connection. Pack into basic data frame
 	Close()                //Close the real connection
 }
 
