@@ -5,6 +5,13 @@ import (
 	"sync"
 )
 
+//Queue is FIFO queue interface, used by Hub
+type Queue interface {
+	Enq(uid interface{}, data []byte) error
+	Deq(uid interface{}) ([]byte, error)
+	Len(uid interface{}) (int, error)
+}
+
 func (p *memQueue) qname(uid interface{}) string {
 	return fmt.Sprintf("q%v", uid)
 }
@@ -56,6 +63,6 @@ func (p *memQueue) Deq(uid interface{}) ([]byte, error) {
 	return d, nil
 }
 
-func CreateMemQ() Queue {
+func createMemQ() Queue {
 	return &memQueue{m: make(map[string][][]byte)}
 }

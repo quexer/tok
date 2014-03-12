@@ -5,11 +5,11 @@
 package tok
 
 import (
-	//	"log"
+	"code.google.com/p/go.net/websocket"
+	"log"
+	"net"
 	"time"
 )
-
-type func_ping func() []byte
 
 type connection struct {
 	uid     interface{}
@@ -24,10 +24,27 @@ type conState struct {
 	online bool
 }
 
+//ConAdapter if adapter for real connection.
+//For now, net.Conn and  websocket.Conn are supported.
+//This interface is useful for building test application
 type ConAdapter interface {
-	Read() ([]byte, error)
-	Write([]byte) error
-	Close()
+	Read() ([]byte, error) //Read payload data from real connection. Unpack basic data frame
+	Write([]byte) error    //Write payload data to real connection. Pack data with basic frame
+	Close()                //Close the real connection
+}
+
+//BuildConAdapter build ConAdapter using real connection
+//For now, net.Conn and  websocket.Conn are supported.
+func BuildConAdapter(conn interface{}) ConAdapter {
+	switch conn.(type) {
+	case net.Conn:
+		return &tcpAdapter{conn: conn.(net.Conn)}
+	case *websocket.Conn:
+		return &wsAdapter{conn: conn.(*websocket.Conn)}
+	default:
+		log.Fatal("not supported", conn)
+		return nil
+	}
 }
 
 func (conn *connection) read(chState chan<- *conState, chUp chan<- *frame) {

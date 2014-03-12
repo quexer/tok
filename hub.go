@@ -47,7 +47,7 @@ type Hub struct {
 
 func createHub(actor Actor, q Queue, sso bool) *Hub {
 	if q == nil {
-		q = CreateMemQ()
+		q = createMemQ()
 	}
 	hub := &Hub{
 		sso:          sso,

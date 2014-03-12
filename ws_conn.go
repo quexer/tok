@@ -39,15 +39,14 @@ func (p *wsAdapter) Close() {
 	p.conn.Close()
 }
 
-//Create Hub and http handler, if txt is true, web socket will serve text frame
-func CreateWsHandler(hubConfig *HubConfig, txt bool) (*Hub, http.Handler) {
-	hub := createHub(hubConfig.Actor, hubConfig.Q, hubConfig.Sso)
-	return hub, CreateWsHandlerWithHub(hub, txt)
-
-}
-
-//Create http handler with existing Hub
-func CreateWsHandlerWithHub(hub *Hub, txt bool) http.Handler {
+//CreateWsHandler create web socket http handler with hub.
+//If config is not nil, a new hub will be created and replace old one
+//If txt is true web socket will serve text frame, otherwise serve binary frame
+//Return http handler
+func CreateWsHandler(hub *Hub, config *HubConfig, txt bool) http.Handler {
+	if config != nil {
+		hub = createHub(config.Actor, config.Q, config.Sso)
+	}
 	return websocket.Handler(func(ws *websocket.Conn) {
 		adapter := &wsAdapter{conn: ws, txt: txt}
 		r := ws.Request()

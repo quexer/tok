@@ -20,7 +20,7 @@ const (
 )
 
 var (
-	TCP_MAX_PACK_LEN uint32 = 4 * 1024 * 1024 //upper limit for single message
+	TCP_MAX_PACK_LEN uint32 = 4 * 1024 * 1024 //Upper limit for single message
 )
 
 type tcpAdapter struct {
@@ -67,20 +67,18 @@ func (p *tcpAdapter) Close() {
 	p.conn.Close()
 }
 
-//Create hub with hubConfig, then create Tcp listener on addr
-//return hub
-func Listen(hubConfig *HubConfig, addr string) (*Hub, error) {
-	hub := createHub(hubConfig.Actor, hubConfig.Q, hubConfig.Sso)
-	return hub, ListenWithHub(hub, addr)
-}
-
-//Create Tcp listener with existing hub.
-//return error if create listener failed
-func ListenWithHub(hub *Hub, addr string) error {
+//Create Tcp listener with hub.
+//If config is not nil, a new hub will be created and replace the old one.
+//addr is the tcp address to be listened on.
+//return error if listen failed.
+func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
+	if config != nil {
+		hub = createHub(config.Actor, config.Q, config.Sso)
+	}
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	initAuth := func(adapter ConAdapter) <-chan bool {
@@ -129,5 +127,5 @@ func ListenWithHub(hub *Hub, addr string) error {
 		}
 	}()
 
-	return nil
+	return hub, nil
 }
