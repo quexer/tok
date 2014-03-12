@@ -76,6 +76,10 @@ func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
 		hub = createHub(config.Actor, config.Q, config.Sso)
 	}
 
+	if hub == nil {
+		log.Fatal("hub is needed")
+	}
+
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err

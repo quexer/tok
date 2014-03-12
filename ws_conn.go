@@ -43,11 +43,16 @@ func (p *wsAdapter) Close() {
 //If config is not nil, a new hub will be created and replace old one
 //If txt is true web socket will serve text frame, otherwise serve binary frame
 //Return http handler
-func CreateWsHandler(hub *Hub, config *HubConfig, txt bool) http.Handler {
+func CreateWsHandler(hub *Hub, config *HubConfig, txt bool) (*Hub, http.Handler) {
 	if config != nil {
 		hub = createHub(config.Actor, config.Q, config.Sso)
 	}
-	return websocket.Handler(func(ws *websocket.Conn) {
+
+	if hub == nil {
+		log.Fatal("hub is needed")
+	}
+
+	return hub, websocket.Handler(func(ws *websocket.Conn) {
 		adapter := &wsAdapter{conn: ws, txt: txt}
 		r := ws.Request()
 		uid, err := hub.actor.Auth(r)
