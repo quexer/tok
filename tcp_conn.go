@@ -85,7 +85,7 @@ func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
 		return nil, err
 	}
 
-	initAuth := func(adapter ConAdapter) <-chan bool {
+	initAuth := func(adapter conAdapter) <-chan bool {
 		chOk := make(chan bool, 1)
 		go func() {
 			b, err := adapter.Read()
