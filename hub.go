@@ -19,6 +19,12 @@ var (
 	expDeq    = expvar.NewInt("tokDeq")
 )
 
+
+type fatFrame struct {
+	frame *frame //frame to be sent
+	chErr chan error //channel to read send result from
+}
+
 type frame struct {
 	uid  interface{}
 	data []byte
@@ -38,8 +44,8 @@ type Hub struct {
 	q             Queue
 	cons          map[interface{}][]*connection //connection list
 	chUp          chan *frame
-	chDown        chan *frame //for online user
-	chDown2       chan *frame //for all user
+	chDown        chan *fatFrame //for online user
+	chDown2       chan *fatFrame //for all user
 	chConState    chan *conState
 	chReadSignal  chan interface{}
 	chQueryOnline chan chan []interface{}
@@ -55,8 +61,8 @@ func createHub(actor Actor, q Queue, sso bool) *Hub {
 		q:            q,
 		cons:         make(map[interface{}][]*connection),
 		chUp:         make(chan *frame),
-		chDown:       make(chan *frame),
-		chDown2:      make(chan *frame),
+		chDown:       make(chan *fatFrame),
+		chDown2:      make(chan *fatFrame),
 		chConState:   make(chan *conState),
 		chReadSignal: make(chan interface{}, 100),
 	}
@@ -82,17 +88,24 @@ func (p *Hub) run() {
 			//			log.Println("up data")
 			expUp.Add(1)
 			go p.actor.OnReceive(f.uid, f.data)
-		case f := <-p.chDown:
-			expDown.Add(1)
-			p.down(f)
-		case f := <-p.chDown2:
-			if len(p.cons[f.uid]) > 0 {
+		case ff := <-p.chDown:
+			if len(p.cons[ff.frame.uid]) > 0{
 				expDown.Add(1)
-				p.down(f)
+				p.down(ff.frame)
+			}else{
+				ff.chErr <- ErrOffline
+			}
+			close(ff.chErr)
+		case ff := <-p.chDown2:
+			if len(p.cons[ff.frame.uid]) > 0 {
+				expDown.Add(1)
+				p.down(ff.frame)
+				close(ff.chErr)
 			} else {
 				expEnq.Add(1)
-				go p.cache(f)
+				go p.cache(ff)
 			}
+
 		case uid := <-p.chReadSignal:
 			//only pop msg for online user
 			if len(p.cons[uid]) > 0 {
@@ -121,18 +134,26 @@ func (p *Hub) popMsg(uid interface{}) {
 			return
 		}
 		expDeq.Add(1)
-		p.chDown <- &frame{uid: uid, data: b}
+		ff := &fatFrame{frame: &frame{uid: uid, data: b}, chErr: make(chan error)}
+		p.chDown <- ff
+		err = <- ff.chErr
+		if err != nil {
+			log.Println("send err after deq")
+			return
+		}
 	}
 }
 
 //Send message to someone
-func (p *Hub) Send(to interface{}, b []byte, cacheIfOffline bool) {
-	f := &frame{uid: to, data: b}
+//if cache flag is false and user is offline, ErrOffline will be returned
+func (p *Hub) Send(to interface{}, b []byte, cacheIfOffline bool) error{
+	ff := &fatFrame{frame: &frame{uid: to, data: b}, chErr: make(chan error)}
 	if cacheIfOffline {
-		p.chDown2 <- f
+		p.chDown2 <- ff
 	} else {
-		p.chDown <- f
+		p.chDown <- ff
 	}
+	return <- ff.chErr
 }
 
 //Query online user list
@@ -142,10 +163,12 @@ func (p *Hub) Online() []interface{} {
 	return <-ch
 }
 
-func (p *Hub) cache(f *frame) {
+func (p *Hub) cache(ff *fatFrame){
+	f := ff.frame
 	if err := p.q.Enq(f.uid, f.data); err != nil {
-		log.Println("send binary to q err ", err)
+		ff.chErr <- err
 	}
+	close(ff.chErr)
 }
 
 func (p *Hub) down(f *frame) {

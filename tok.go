@@ -4,7 +4,12 @@
 
 package tok
 
-import "net/http"
+import (
+	"net/http"
+	"errors"
+)
+
+var ErrOffline = errors.New("offline")
 
 //Application can interact with tok via this interface
 type Actor interface {
