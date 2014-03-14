@@ -65,6 +65,7 @@ func createHub(actor Actor, q Queue, sso bool) *Hub {
 		chDown2:      make(chan *fatFrame),
 		chConState:   make(chan *conState),
 		chReadSignal: make(chan interface{}, 100),
+		chQueryOnline: make(chan chan []interface{}),
 	}
 	go hub.run()
 	return hub
@@ -160,6 +161,7 @@ func (p *Hub) Send(to interface{}, b []byte, cacheIfOffline bool) error{
 func (p *Hub) Online() []interface{} {
 	ch := make(chan []interface{})
 	p.chQueryOnline <- ch
+	log.Println(111)
 	return <-ch
 }
 
