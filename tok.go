@@ -10,6 +10,7 @@ import (
 )
 
 var ErrOffline = errors.New("offline")
+var ErrQueueRequired = errors.New("queue is required")
 
 //Application can interact with tok via this interface
 type Actor interface {

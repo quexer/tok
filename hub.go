@@ -33,8 +33,8 @@ type frame struct {
 //Config to create new Hub
 type HubConfig struct {
 	Actor Actor //Actor implement dispatch logic
-	Q     Queue //Message Q, if nil, a memory based queue will be used
-	Sso   bool  //If it's true, new connection will kick off old ones with same uid
+	Q     Queue //Message Queue, if nil, message to offline user will not be cached
+	Sso   bool  //If it's true, new connection  with same uid will kick off old ones
 }
 
 //Dispatch message between connections
@@ -52,9 +52,6 @@ type Hub struct {
 }
 
 func createHub(actor Actor, q Queue, sso bool) *Hub {
-	if q == nil {
-		q = createMemQ()
-	}
 	hub := &Hub{
 		sso:          sso,
 		actor:        actor,
@@ -124,6 +121,10 @@ func (p *Hub) run() {
 }
 
 func (p *Hub) popMsg(uid interface{}) {
+	if p.q == nil {
+		return
+	}
+
 	for {
 		b, err := p.q.Deq(uid)
 		if err != nil {
@@ -147,6 +148,7 @@ func (p *Hub) popMsg(uid interface{}) {
 
 //Send message to someone
 //if cache flag is false and user is offline, ErrOffline will be returned
+//any other error occurred, the error is returned
 func (p *Hub) Send(to interface{}, b []byte, cacheIfOffline bool) error{
 	ff := &fatFrame{frame: &frame{uid: to, data: b}, chErr: make(chan error)}
 	if cacheIfOffline {
@@ -161,16 +163,21 @@ func (p *Hub) Send(to interface{}, b []byte, cacheIfOffline bool) error{
 func (p *Hub) Online() []interface{} {
 	ch := make(chan []interface{})
 	p.chQueryOnline <- ch
-	log.Println(111)
 	return <-ch
 }
 
 func (p *Hub) cache(ff *fatFrame){
+	defer close(ff.chErr)
+
+	if p.q == nil {
+		ff.chErr <- ErrQueueRequired
+		return
+	}
+
 	f := ff.frame
 	if err := p.q.Enq(f.uid, f.data); err != nil {
 		ff.chErr <- err
 	}
-	close(ff.chErr)
 }
 
 func (p *Hub) down(f *frame) {
