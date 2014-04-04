@@ -8,6 +8,7 @@ import (
 	"code.google.com/p/go.net/websocket"
 	"log"
 	"net/http"
+	"time"
 )
 
 type wsAdapter struct {
@@ -53,6 +54,10 @@ func CreateWsHandler(hub *Hub, config *HubConfig, txt bool) (*Hub, http.Handler)
 	}
 
 	return hub, websocket.Handler(func(ws *websocket.Conn) {
+		if err := ws.SetWriteDeadline(time.Now().Add(time.Minute)); err != nil {
+			log.Println("[warning] setting ws write deadline", err)
+		}
+
 		adapter := &wsAdapter{conn: ws, txt: txt}
 		r := ws.Request()
 		uid, err := hub.actor.Auth(r)

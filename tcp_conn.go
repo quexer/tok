@@ -127,6 +127,12 @@ func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
 				log.Println("Error accepting", err)
 				continue
 			}
+
+			//set write deadline
+			if err := conn.SetWriteDeadline(time.Now().Add(time.Minute)); err != nil {
+				log.Println("[warning] setting write deadline fail", err)
+			}
+
 			go initWithTimeout(conn)
 		}
 	}()
