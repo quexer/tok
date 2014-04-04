@@ -21,7 +21,7 @@ var (
 
 
 type fatFrame struct {
-	frame *frame //frame to be sent
+	frame *frame     //frame to be sent
 	chErr chan error //channel to read send result from
 }
 
@@ -53,15 +53,15 @@ type Hub struct {
 
 func createHub(actor Actor, q Queue, sso bool) *Hub {
 	hub := &Hub{
-		sso:          sso,
-		actor:        actor,
-		q:            q,
-		cons:         make(map[interface{}][]*connection),
-		chUp:         make(chan *frame),
-		chDown:       make(chan *fatFrame),
-		chDown2:      make(chan *fatFrame),
-		chConState:   make(chan *conState),
-		chReadSignal: make(chan interface{}, 100),
+		sso:           sso,
+		actor:         actor,
+		q:             q,
+		cons:          make(map[interface{}][]*connection),
+		chUp:          make(chan *frame),
+		chDown:        make(chan *fatFrame),
+		chDown2:       make(chan *fatFrame),
+		chConState:    make(chan *conState),
+		chReadSignal:  make(chan interface{}, 100),
 		chQueryOnline: make(chan chan []interface{}),
 	}
 	go hub.run()
@@ -87,10 +87,10 @@ func (p *Hub) run() {
 			expUp.Add(1)
 			go p.actor.OnReceive(f.uid, f.data)
 		case ff := <-p.chDown:
-			if len(p.cons[ff.frame.uid]) > 0{
+			if len(p.cons[ff.frame.uid]) > 0 {
 				expDown.Add(1)
 				p.down(ff.frame)
-			}else{
+			} else {
 				ff.chErr <- ErrOffline
 			}
 			close(ff.chErr)
@@ -138,7 +138,7 @@ func (p *Hub) popMsg(uid interface{}) {
 		expDeq.Add(1)
 		ff := &fatFrame{frame: &frame{uid: uid, data: b}, chErr: make(chan error)}
 		p.chDown <- ff
-		err = <- ff.chErr
+		err = <-ff.chErr
 		if err != nil {
 			log.Println("send err after deq")
 			return
@@ -149,14 +149,14 @@ func (p *Hub) popMsg(uid interface{}) {
 //Send message to someone
 //if cache flag is false and user is offline, ErrOffline will be returned
 //any other error occurred, the error is returned
-func (p *Hub) Send(to interface{}, b []byte, cacheIfOffline bool) error{
+func (p *Hub) Send(to interface{}, b []byte, cacheIfOffline bool) error {
 	ff := &fatFrame{frame: &frame{uid: to, data: b}, chErr: make(chan error)}
 	if cacheIfOffline {
 		p.chDown2 <- ff
 	} else {
 		p.chDown <- ff
 	}
-	return <- ff.chErr
+	return <-ff.chErr
 }
 
 //Query online user list
@@ -166,7 +166,7 @@ func (p *Hub) Online() []interface{} {
 	return <-ch
 }
 
-func (p *Hub) cache(ff *fatFrame){
+func (p *Hub) cache(ff *fatFrame) {
 	defer close(ff.chErr)
 
 	if p.q == nil {
@@ -237,6 +237,10 @@ func (p *Hub) goOnline(conn *connection) {
 
 func (p *Hub) startRead(uid interface{}) {
 	p.chReadSignal <- uid
+}
+
+func (p *Hub) stateChange(conn *connection, online bool) {
+	p.chConState <- &conState{conn, online}
 }
 
 func connExclude(l []*connection, ex *connection) []*connection {

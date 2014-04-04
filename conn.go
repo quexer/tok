@@ -28,19 +28,19 @@ type conAdapter interface {
 	Close()                //Close the real connection
 }
 
-func (conn *connection) read(chState chan<- *conState, chUp chan<- *frame) {
+func (conn *connection) read(hub *Hub, chUp chan<- *frame) {
 	for {
 		b, err := conn.adapter.Read()
 		if err != nil {
 			//			log.Println("read err", err)
-			chState <- &conState{con: conn, online: false}
+			hub.stateChange(conn, false)
 			break
 		}
 		chUp <- &frame{uid: conn.uid, data: b}
 	}
 }
 
-func (conn *connection) write(chState chan<- *conState) {
+func (conn *connection) write(hub *Hub) {
 	for {
 		select {
 		case b := <-conn.ch:
@@ -50,19 +50,19 @@ func (conn *connection) write(chState chan<- *conState) {
 				return
 			}
 			//			log.Println("down msg for ", conn)
-			conn.innerWrite(chState, b)
+			conn.innerWrite(hub, b)
 		case <-conn.ticker.C:
 			if b := conn.actor.Ping(); b != nil {
-				conn.innerWrite(chState, b)
+				conn.innerWrite(hub, b)
 			}
 		}
 	}
 
 }
 
-func (conn *connection) innerWrite(chState chan<- *conState, b []byte) {
+func (conn *connection) innerWrite(hub *Hub, b []byte) {
 	if err := conn.adapter.Write(b); err != nil {
-		chState <- &conState{con: conn, online: false}
+		hub.stateChange(conn, false)
 	}
 }
 
@@ -83,7 +83,7 @@ func initConnection(uid interface{}, adapter conAdapter, hub *Hub) {
 		actor:   hub.actor,
 	}
 
-	hub.chConState <- &conState{conn, true}
-	go conn.write(hub.chConState)
-	conn.read(hub.chConState, hub.chUp)
+	hub.stateChange(conn, true)
+	go conn.write(hub)
+	conn.read(hub, hub.chUp)
 }

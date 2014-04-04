@@ -5,8 +5,8 @@
 package tok
 
 import (
-	"net/http"
 	"errors"
+	"net/http"
 )
 
 var ErrOffline = errors.New("offline")
