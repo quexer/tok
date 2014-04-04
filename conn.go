@@ -4,14 +4,18 @@
 
 package tok
 
-import "time"
+import (
+	"fmt"
+	"sync"
+	"time"
+)
 
 type connection struct {
+	sync.RWMutex
 	uid     interface{}
 	adapter conAdapter
-	ticker  *time.Ticker
-	ch      chan []byte
-	actor   Actor
+	hub     *Hub
+	closed  bool
 }
 
 type conState struct {
@@ -28,62 +32,73 @@ type conAdapter interface {
 	Close()                //Close the real connection
 }
 
-func (conn *connection) read(hub *Hub, chUp chan<- *frame) {
+func (conn *connection) isClosed() bool {
+	conn.RLock()
+	defer conn.RUnlock()
+	return conn.closed
+}
+
+func (conn *connection) readLoop(hub *Hub) {
 	for {
+		if conn.isClosed() {
+			return
+		}
+
 		b, err := conn.adapter.Read()
 		if err != nil {
 			//			log.Println("read err", err)
 			hub.stateChange(conn, false)
-			break
+			return
 		}
-		chUp <- &frame{uid: conn.uid, data: b}
-	}
-}
-
-func (conn *connection) write(hub *Hub) {
-	for {
-		select {
-		case b := <-conn.ch:
-			if b == nil {
-				conn.ticker.Stop()
-				conn.adapter.Close()
-				return
-			}
-			//			log.Println("down msg for ", conn)
-			conn.innerWrite(hub, b)
-		case <-conn.ticker.C:
-			if b := conn.actor.Ping(); b != nil {
-				conn.innerWrite(hub, b)
-			}
-		}
-	}
-
-}
-
-func (conn *connection) innerWrite(hub *Hub, b []byte) {
-	if err := conn.adapter.Write(b); err != nil {
-		hub.stateChange(conn, false)
+		hub.receive(conn.uid, b)
 	}
 }
 
 func (conn *connection) close() {
-	//	log.Println("close down channel", conn)
-	close(conn.ch)
+	conn.Lock()
+	defer conn.Unlock()
+
+	conn.closed = true
+	conn.adapter.Close()
 }
 
-//block on read
+func (conn *connection) Write(b []byte) error {
+	if conn.isClosed() {
+		return fmt.Errorf("Can't write to closed connection")
+	}
+
+	err := conn.adapter.Write(b)
+	if err != nil {
+		conn.hub.stateChange(conn, false)
+	}
+	return err
+}
+
 func initConnection(uid interface{}, adapter conAdapter, hub *Hub) {
 	//	log.Println("new conection ", uid)
 
 	conn := &connection{
 		uid:     uid,
 		adapter: adapter,
-		ch:      make(chan []byte, 256),
-		ticker:  time.NewTicker(30 * 1e9),
-		actor:   hub.actor,
+		hub:     hub,
 	}
 
 	hub.stateChange(conn, true)
-	go conn.write(hub)
-	conn.read(hub, hub.chUp)
+
+	//start ping loop if necessary
+	if hub.actor.Ping() != nil {
+		ticker := time.NewTicker(30 * 1e9)
+		go func() {
+			for _ = range ticker.C {
+				if conn.isClosed() {
+					ticker.Stop()
+					return
+				}
+				conn.Write(hub.actor.Ping())
+			}
+		}()
+	}
+
+	//block on read
+	conn.readLoop(hub)
 }

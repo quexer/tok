@@ -19,7 +19,6 @@ var (
 	expDeq    = expvar.NewInt("tokDeq")
 )
 
-
 type fatFrame struct {
 	frame *frame     //frame to be sent
 	chErr chan error //channel to read send result from
@@ -61,7 +60,7 @@ func createHub(actor Actor, q Queue, sso bool) *Hub {
 		chDown:        make(chan *fatFrame),
 		chDown2:       make(chan *fatFrame),
 		chConState:    make(chan *conState),
-		chReadSignal:  make(chan interface{}, 100),
+		chReadSignal:  make(chan interface{}),
 		chQueryOnline: make(chan chan []interface{}),
 	}
 	go hub.run()
@@ -89,16 +88,15 @@ func (p *Hub) run() {
 		case ff := <-p.chDown:
 			if len(p.cons[ff.frame.uid]) > 0 {
 				expDown.Add(1)
-				p.down(ff.frame)
+				go p.down(ff)
 			} else {
 				ff.chErr <- ErrOffline
+				close(ff.chErr)
 			}
-			close(ff.chErr)
 		case ff := <-p.chDown2:
 			if len(p.cons[ff.frame.uid]) > 0 {
 				expDown.Add(1)
-				p.down(ff.frame)
-				close(ff.chErr)
+				go p.down(ff)
 			} else {
 				expEnq.Add(1)
 				go p.cache(ff)
@@ -136,10 +134,7 @@ func (p *Hub) popMsg(uid interface{}) {
 			return
 		}
 		expDeq.Add(1)
-		ff := &fatFrame{frame: &frame{uid: uid, data: b}, chErr: make(chan error)}
-		p.chDown <- ff
-		err = <-ff.chErr
-		if err != nil {
+		if err := p.Send(uid, b, false); err != nil {
 			log.Println("send err after deq")
 			return
 		}
@@ -180,9 +175,15 @@ func (p *Hub) cache(ff *fatFrame) {
 	}
 }
 
-func (p *Hub) down(f *frame) {
-	for _, con := range p.cons[f.uid] {
-		con.ch <- f.data
+func (p *Hub) down(ff *fatFrame) {
+	defer close(ff.chErr)
+
+	for _, con := range p.cons[ff.frame.uid] {
+		err := con.Write(ff.frame.data)
+		if err != nil {
+			ff.chErr <- err
+			return
+		}
 	}
 }
 
@@ -201,7 +202,7 @@ func (p *Hub) goOffline(conn *connection) {
 		p.cons[conn.uid] = rest
 	}
 
-	conn.close()
+	go conn.close()
 }
 
 func (p *Hub) goOnline(conn *connection) {
@@ -213,8 +214,10 @@ func (p *Hub) goOnline(conn *connection) {
 			for _, old := range l {
 				log.Printf("kick %v\n", old)
 				//notify before close connection
-				old.ch <- p.actor.Bye("sso")
-				old.close()
+				go func() {
+					old.Write(p.actor.Bye("sso"))
+					old.close()
+				}()
 			}
 			l = []*connection{conn}
 		} else {
@@ -232,7 +235,7 @@ func (p *Hub) goOnline(conn *connection) {
 		}
 	}
 	p.cons[conn.uid] = l
-	p.startRead(conn.uid)
+	go p.startRead(conn.uid)
 }
 
 func (p *Hub) startRead(uid interface{}) {
@@ -241,6 +244,11 @@ func (p *Hub) startRead(uid interface{}) {
 
 func (p *Hub) stateChange(conn *connection, online bool) {
 	p.chConState <- &conState{conn, online}
+}
+
+//receive data from user
+func (p *Hub) receive(uid interface{}, b []byte) {
+	p.chUp <- &frame{uid: uid, data: b}
 }
 
 func connExclude(l []*connection, ex *connection) []*connection {
