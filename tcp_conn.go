@@ -51,6 +51,12 @@ func (p *tcpAdapter) Read() ([]byte, error) {
 }
 
 func (p *tcpAdapter) Write(b []byte) error {
+	//set write deadline
+	if err := p.conn.SetWriteDeadline(time.Now().Add(WRITE_TIMEOUT)); err != nil {
+		log.Println("[warning] setting write deadline fail: ", err)
+		return err
+	}
+
 	n := uint32(len(b))
 
 	buf := new(bytes.Buffer)
@@ -85,39 +91,37 @@ func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
 		return nil, err
 	}
 
-	initAuth := func(adapter conAdapter) <-chan bool {
-		chOk := make(chan bool, 1)
-		go func() {
-			b, err := adapter.Read()
-			if err != nil {
-				adapter.Close()
-				chOk <- false
-				return
-			}
-			r := &http.Request{Header: http.Header{"Cookie": {string(b)}}}
-			uid, err := hub.actor.Auth(r)
-			if err != nil {
-				log.Println("401", err)
-				adapter.Write(hub.actor.Bye("unauthorized"))
-				adapter.Close()
-				chOk <- false
-				return
-			}
-			go initConnection(uid, adapter, hub)
-			chOk <- true
-		}()
-		return chOk
-	}
-
-	initWithTimeout := func(conn net.Conn) {
+	initAuth := func(conn net.Conn) {
 		//		log.Println("raw tcp connection", conn.RemoteAddr())
-		adapter := &tcpAdapter{conn: conn}
-		select {
-		case <-time.After(time.Second * 5):
-			log.Println("init connection: timeout")
-			adapter.Close()
-		case <-initAuth(adapter):
+		if err := conn.SetReadDeadline(time.Now().Add(AUTH_TIMEOUT)); err != nil {
+			log.Println("set auth deadline err: ", err)
+			conn.Close()
+			return
 		}
+
+		adapter := &tcpAdapter{conn: conn}
+		b, err := adapter.Read()
+		if err != nil {
+			log.Println("tcp auth err ", err)
+			adapter.Close()
+			return
+		}
+		r := &http.Request{Header: http.Header{"Cookie": {string(b)}}}
+		uid, err := hub.actor.Auth(r)
+		if err != nil {
+			log.Println("401", err)
+			adapter.Write(hub.actor.Bye("unauthorized"))
+			adapter.Close()
+			return
+		}
+
+		if err := conn.SetReadDeadline(time.Time{}); err != nil {
+			log.Println("clear auth deadline err: ", err)
+			adapter.Close()
+			return
+		}
+
+		initConnection(uid, adapter, hub)
 	}
 
 	go func() {
@@ -128,12 +132,7 @@ func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
 				continue
 			}
 
-			//set write deadline
-			if err := conn.SetWriteDeadline(time.Now().Add(time.Minute)); err != nil {
-				log.Println("[warning] setting write deadline fail", err)
-			}
-
-			go initWithTimeout(conn)
+			go initAuth(conn)
 		}
 	}()
 
