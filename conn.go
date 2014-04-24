@@ -11,13 +11,13 @@ import (
 )
 
 var (
-	WRITE_TIMEOUT = time.Minute //write timeout
-	AUTH_TIMEOUT = time.Second * 5 //auth timeout
+	WRITE_TIMEOUT = time.Minute     //write timeout
+	AUTH_TIMEOUT  = time.Second * 5 //auth timeout
 )
 
 type connection struct {
 	sync.RWMutex
-	wLock sync.Mutex
+	wLock   sync.Mutex
 	uid     interface{}
 	adapter conAdapter
 	hub     *Hub
@@ -70,7 +70,7 @@ func (conn *connection) close() {
 
 func (conn *connection) Write(b []byte) error {
 	conn.wLock.Lock()
-	defer  conn.wLock.Unlock()
+	defer conn.wLock.Unlock()
 
 	if conn.isClosed() {
 		return fmt.Errorf("Can't write to closed connection")

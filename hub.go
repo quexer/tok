@@ -202,7 +202,10 @@ func (p *Hub) goOffline(conn *connection) {
 		p.cons[conn.uid] = rest
 	}
 
-	go conn.close()
+	go func(active int) {
+		conn.close()
+		p.actor.OnClose(conn.uid, active)
+	}(len(rest))
 }
 
 func (p *Hub) goOnline(conn *connection) {
@@ -217,6 +220,8 @@ func (p *Hub) goOnline(conn *connection) {
 				go func() {
 					old.Write(p.actor.Bye("sso"))
 					old.close()
+					//after sso kick, only one connection keep active
+					p.actor.OnClose(conn.uid, 1)
 				}()
 			}
 			l = []*connection{conn}

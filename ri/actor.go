@@ -90,6 +90,10 @@ func (p *Actor) Auth(r *http.Request) (interface{}, error) {
 	return p.checker.Auth(r)
 }
 
+func (p *Actor) OnClose(uid interface{}, active int) {
+	//do nothing
+}
+
 func tick() int64 {
 	return time.Now().UnixNano() / 1e6
 }
