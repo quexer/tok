@@ -6,9 +6,7 @@ package tok
 
 import (
 	"expvar"
-	"fmt"
 	"log"
-	"strings"
 )
 
 var (
@@ -80,7 +78,6 @@ func (p *Hub) run() {
 			}
 			count := int64(len(p.cons))
 			expOnline.Set(count)
-			fmt.Printf("%stok online:%8d", strings.Repeat("\b", 19), count)
 		case f := <-p.chUp:
 			//			log.Println("up data")
 			expUp.Add(1)
