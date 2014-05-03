@@ -17,6 +17,13 @@ type wsAdapter struct {
 }
 
 func (p *wsAdapter) Read() ([]byte, error) {
+	if READ_TIMEOUT > 0 {
+		if err := p.conn.SetReadDeadline(time.Now().Add(READ_TIMEOUT)); err != nil {
+			log.Println("[warning] setting ws read deadline: ", err)
+			return nil, err
+		}
+	}
+
 	if p.txt {
 		var s string
 		err := websocket.Message.Receive(p.conn, &s)

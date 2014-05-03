@@ -49,6 +49,10 @@ type Hub struct {
 }
 
 func createHub(actor Actor, q Queue, sso bool) *Hub {
+	if READ_TIMEOUT > 0 {
+		log.Println("[tok]read timeout is enabled, make sure it's greater than your client ping interval. otherwise you'll get read timeout err")
+	}
+
 	hub := &Hub{
 		sso:           sso,
 		actor:         actor,

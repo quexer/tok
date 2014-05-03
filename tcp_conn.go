@@ -28,6 +28,13 @@ type tcpAdapter struct {
 }
 
 func (p *tcpAdapter) Read() ([]byte, error) {
+	if READ_TIMEOUT > 0 {
+		if err := p.conn.SetReadDeadline(time.Now().Add(READ_TIMEOUT)); err != nil {
+			log.Println("[warning] setting read deadline: ", err)
+			return nil, err
+		}
+	}
+
 	//read header
 	b := make([]byte, tcp_header_len)
 	if _, err := io.ReadFull(p.conn, b); err != nil {
@@ -44,6 +51,12 @@ func (p *tcpAdapter) Read() ([]byte, error) {
 		return nil, fmt.Errorf("pack length %dM can't greater than %dM", n/1024/1024, TCP_MAX_PACK_LEN/1024/1024)
 	}
 
+	if READ_TIMEOUT > 0 {
+		if err := p.conn.SetReadDeadline(time.Now().Add(READ_TIMEOUT)); err != nil {
+			log.Println("[warning] setting read deadline: ", err)
+			return nil, err
+		}
+	}
 	b = make([]byte, n)
 	_, err := io.ReadFull(p.conn, b)
 	return b, err
