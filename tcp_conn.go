@@ -25,14 +25,19 @@ var (
 
 type tcpAdapter struct {
 	conn net.Conn
+	readTimeout time.Duration
 }
 
 func (p *tcpAdapter) Read() ([]byte, error) {
-	if READ_TIMEOUT > 0 {
-		if err := p.conn.SetReadDeadline(time.Now().Add(READ_TIMEOUT)); err != nil {
-			log.Println("[warning] setting read deadline: ", err)
-			return nil, err
-		}
+	var deadline time.Time
+	if p.readTimeout > 0 {
+		deadline = time.Now().Add(p.readTimeout)
+	}else{
+		deadline = time.Time{}
+	}
+	if err := p.conn.SetReadDeadline(deadline); err != nil {
+		log.Println("[warning] setting read deadline: ", err)
+		return nil, err
 	}
 
 	//read header
@@ -51,12 +56,16 @@ func (p *tcpAdapter) Read() ([]byte, error) {
 		return nil, fmt.Errorf("pack length %dM can't greater than %dM", n/1024/1024, TCP_MAX_PACK_LEN/1024/1024)
 	}
 
-	if READ_TIMEOUT > 0 {
-		if err := p.conn.SetReadDeadline(time.Now().Add(READ_TIMEOUT)); err != nil {
-			log.Println("[warning] setting read deadline: ", err)
-			return nil, err
-		}
+	if p.readTimeout > 0 {
+		deadline = time.Now().Add(p.readTimeout)
+	}else{
+		deadline = time.Time{}
 	}
+	if err := p.conn.SetReadDeadline(deadline); err != nil {
+		log.Println("[warning] setting read deadline: ", err)
+		return nil, err
+	}
+
 	b = make([]byte, n)
 	_, err := io.ReadFull(p.conn, b)
 	return b, err
@@ -112,7 +121,7 @@ func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
 			return
 		}
 
-		adapter := &tcpAdapter{conn: conn}
+		adapter := &tcpAdapter{conn: conn, readTimeout: AUTH_TIMEOUT}
 		b, err := adapter.Read()
 		if err != nil {
 			log.Println("tcp auth err ", err)
@@ -128,10 +137,10 @@ func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
 			return
 		}
 
-		if err := conn.SetReadDeadline(time.Time{}); err != nil {
-			log.Println("clear auth deadline err: ", err)
-			adapter.Close()
-			return
+		if READ_TIMEOUT > 0 {
+			adapter.readTimeout = READ_TIMEOUT
+		}else{
+			adapter.readTimeout = 0
 		}
 
 		initConnection(uid, adapter, hub)
