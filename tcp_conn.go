@@ -24,7 +24,7 @@ var (
 )
 
 type tcpAdapter struct {
-	conn net.Conn
+	conn        net.Conn
 	readTimeout time.Duration
 }
 
@@ -32,7 +32,7 @@ func (p *tcpAdapter) Read() ([]byte, error) {
 	var deadline time.Time
 	if p.readTimeout > 0 {
 		deadline = time.Now().Add(p.readTimeout)
-	}else{
+	} else {
 		deadline = time.Time{}
 	}
 	if err := p.conn.SetReadDeadline(deadline); err != nil {
@@ -58,7 +58,7 @@ func (p *tcpAdapter) Read() ([]byte, error) {
 
 	if p.readTimeout > 0 {
 		deadline = time.Now().Add(p.readTimeout)
-	}else{
+	} else {
 		deadline = time.Time{}
 	}
 	if err := p.conn.SetReadDeadline(deadline); err != nil {
@@ -139,7 +139,7 @@ func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
 
 		if READ_TIMEOUT > 0 {
 			adapter.readTimeout = READ_TIMEOUT
-		}else{
+		} else {
 			adapter.readTimeout = 0
 		}
 
