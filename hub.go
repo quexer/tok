@@ -18,7 +18,8 @@ var (
 )
 
 type fatFrame struct {
-	frame *frame     //frame to be sent
+	frame *frame //frame to be sent
+	ttl   uint32
 	chErr chan error //channel to read send result from
 }
 
@@ -139,19 +140,25 @@ func (p *Hub) popMsg(uid interface{}) {
 			return
 		}
 		expDeq.Add(1)
-		if err := p.Send(uid, b, false); err != nil {
+		if err := p.Send(uid, b); err != nil {
 			log.Println("send err after deq")
 			return
 		}
 	}
 }
 
-//Send message to someone
-//if cache flag is false and user is offline, ErrOffline will be returned
-//any other error occurred, the error is returned
-func (p *Hub) Send(to interface{}, b []byte, cacheIfOffline bool) error {
-	ff := &fatFrame{frame: &frame{uid: to, data: b}, chErr: make(chan error)}
-	if cacheIfOffline {
+//Send message to someone,
+// ttl is expiry seconds.
+//if ttl > 0 and user is offline, ErrOffline will be returned
+//if any other error occurred, the error will be returned
+func (p *Hub) Send(to interface{}, b []byte, ttl ...int) error {
+	t := 0
+	if len(ttl) > 0 {
+		t = ttl[0]
+	}
+
+	ff := &fatFrame{frame: &frame{uid: to, data: b}, ttl: uint32(t), chErr: make(chan error)}
+	if t > 0 {
 		p.chDown2 <- ff
 	} else {
 		p.chDown <- ff
@@ -175,7 +182,7 @@ func (p *Hub) cache(ff *fatFrame) {
 	}
 
 	f := ff.frame
-	if err := p.q.Enq(f.uid, f.data); err != nil {
+	if err := p.q.Enq(f.uid, f.data, ff.ttl); err != nil {
 		ff.chErr <- err
 	}
 }

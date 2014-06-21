@@ -56,14 +56,16 @@ func (p *queue) Len(uid interface{}) (int, error) {
 	return i, err
 }
 
-func (p *queue) Enq(uid interface{}, data []byte) error {
+func (p *queue) Enq(uid interface{}, data []byte, ttl ...uint32) error {
 	c := p.pool.Get()
 	defer c.Close()
 
 	name := qname(uid)
 	c.Send("MULTI")
 	c.Send("RPUSH", name, data)
-	c.Send("EXPIRE", name, 3600*24*7)
+	if len(ttl) > 0 {
+		c.Send("EXPIRE", name, ttl[0])
+	}
 	_, err := c.Do("EXEC")
 
 	//	log.Println("enq", r)
@@ -76,8 +78,7 @@ func (p *queue) Deq(uid interface{}) ([]byte, error) {
 
 	name := qname(uid)
 	c.Send("MULTI")
-	c.Send("LPOP", qname(uid))
-	c.Send("EXPIRE", name, 3600*24*7)
+	c.Send("LPOP", name)
 	r, err := redis.Values(c.Do("EXEC"))
 
 	if err != nil && err != redis.ErrNil {
