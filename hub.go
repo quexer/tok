@@ -15,6 +15,7 @@ var (
 	expDown   = expvar.NewInt("tokDown")
 	expEnq    = expvar.NewInt("tokEnq")
 	expDeq    = expvar.NewInt("tokDeq")
+	expErr    = expvar.NewInt("tokErr")
 )
 
 type fatFrame struct {
@@ -93,18 +94,22 @@ func (p *Hub) run() {
 			go p.actor.OnReceive(f.uid, f.data)
 		case ff := <-p.chDown:
 			if len(p.cons[ff.frame.uid]) > 0 {
-				expDown.Add(1)
 				go p.down(ff)
 			} else {
-				ff.chErr <- ErrOffline
-				close(ff.chErr)
+				func() {
+					defer func() {
+						if err := recover(); err != nil {
+							log.Println("bug:", err)
+						}
+					}()
+					ff.chErr <- ErrOffline
+					close(ff.chErr)
+				}()
 			}
 		case ff := <-p.chDown2:
 			if len(p.cons[ff.frame.uid]) > 0 {
-				expDown.Add(1)
 				go p.down(ff)
 			} else {
-				expEnq.Add(1)
 				go p.cache(ff)
 			}
 
@@ -140,7 +145,7 @@ func (p *Hub) popMsg(uid interface{}) {
 			return
 		}
 		expDeq.Add(1)
-		if err := p.Send(uid, b); err != nil {
+		if err := p.Send(uid, b, -1); err != nil {
 			log.Println("send err after deq")
 			return
 		}
@@ -169,13 +174,12 @@ func (p *Hub) Send(to interface{}, b []byte, ttl ...int) error {
 	if err == nil {
 		return nil
 	}
-
-	if t < 0 || p.q == nil {
+	expErr.Add(1)
+	if t < 0 {
 		return err
 	}
 
-	//try cache it in case error
-	ff.chErr = make(chan error)
+	ff = &fatFrame{frame: &frame{uid: to, data: b}, ttl: uint32(t), chErr: make(chan error)}
 	go p.cache(ff)
 	return <-ff.chErr
 }
@@ -189,7 +193,7 @@ func (p *Hub) Online() []interface{} {
 
 func (p *Hub) cache(ff *fatFrame) {
 	defer close(ff.chErr)
-
+	expEnq.Add(1)
 	if p.q == nil {
 		ff.chErr <- ErrQueueRequired
 		return
@@ -203,7 +207,7 @@ func (p *Hub) cache(ff *fatFrame) {
 
 func (p *Hub) down(ff *fatFrame) {
 	defer close(ff.chErr)
-
+	expDown.Add(1)
 	for _, con := range p.cons[ff.frame.uid] {
 		err := con.Write(ff.frame.data)
 		if err != nil {
