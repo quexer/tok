@@ -63,7 +63,7 @@ func (p *queue) Enq(uid interface{}, data []byte, ttl ...uint32) error {
 	name := qname(uid)
 	c.Send("MULTI")
 	c.Send("RPUSH", name, data)
-	if len(ttl) > 0 {
+	if len(ttl) > 0 && ttl[0] > 0 {
 		c.Send("EXPIRE", name, ttl[0])
 	}
 	_, err := c.Do("EXEC")

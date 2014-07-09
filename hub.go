@@ -148,9 +148,11 @@ func (p *Hub) popMsg(uid interface{}) {
 }
 
 //Send message to someone,
-// ttl is expiry seconds.
-//if ttl > 0 and user is offline, ErrOffline will be returned
-//if any other error occurred, the error will be returned
+//ttl is expiry seconds. 0 means forever
+//if ttl >= 0 and user is offline, message will be cached for ttl seconds
+//if ttl < 0 and user is offline, ErrOffline will be returned
+//if ttl >=0 and user is online, but error occurred during send, message will be cached
+//if ttl < 0 and user is online, but error occurred during send, the error will be returned
 func (p *Hub) Send(to interface{}, b []byte, ttl ...int) error {
 	t := 0
 	if len(ttl) > 0 {
@@ -163,6 +165,18 @@ func (p *Hub) Send(to interface{}, b []byte, ttl ...int) error {
 	} else {
 		p.chDown <- ff
 	}
+	err := <-ff.chErr
+	if err == nil {
+		return nil
+	}
+
+	if t < 0 || p.q == nil {
+		return err
+	}
+
+	//try cache it in case error
+	ff.chErr = make(chan error)
+	go p.cache(ff)
 	return <-ff.chErr
 }
 
