@@ -154,7 +154,7 @@ func (p *Hub) popMsg(uid interface{}) {
 //if ttl >=0 and user is online, but error occurred during send, message will be cached
 //if ttl < 0 and user is online, but error occurred during send, the error will be returned
 func (p *Hub) Send(to interface{}, b []byte, ttl ...int) error {
-	t := 0
+	t := -1
 	if len(ttl) > 0 {
 		t = ttl[0]
 	}
