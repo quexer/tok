@@ -208,13 +208,17 @@ func (p *Hub) cache(ff *fatFrame) {
 func (p *Hub) down(ff *fatFrame) {
 	defer close(ff.chErr)
 	expDown.Add(1)
+
+	count := 0
 	for _, con := range p.cons[ff.frame.uid] {
-		err := con.Write(ff.frame.data)
-		if err != nil {
+		if err := con.Write(ff.frame.data); err != nil {
 			ff.chErr <- err
 			return
 		}
+		count += 1
 	}
+
+	go p.actor.OnSent(ff.frame.uid, ff.frame.data, count)
 }
 
 func (p *Hub) goOffline(conn *connection) {
