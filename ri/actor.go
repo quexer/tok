@@ -70,6 +70,10 @@ func (p *Actor) dispatchMsg(v *kodec.Msg) {
 	go p.checker.Dispatch(uids, v)
 }
 
+func (p *Actor) OnSent(uid interface{}, data []byte, count int) {
+	//do nothing
+}
+
 func (p *Actor) Ping() []byte {
 	b, err := kodec.Boxing(kodec.BuildCmd(kodec.Cmd_PING, "", tick()))
 	if err != nil {
