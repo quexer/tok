@@ -19,9 +19,11 @@ func createPool(server, auth string) *redis.Pool {
 			if err != nil {
 				return nil, err
 			}
-			if _, err := c.Do("AUTH", auth); err != nil {
-				c.Close()
-				return nil, err
+			if auth != "" {
+				if _, err := c.Do("AUTH", auth); err != nil {
+					c.Close()
+					return nil, err
+				}
 			}
 			return c, err
 		},
