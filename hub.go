@@ -140,7 +140,7 @@ func (p *Hub) popMsg(uid interface{}) {
 			log.Println("deq error", err)
 			return
 		}
-		if b == nil {
+		if len(b) == 0 {
 			//no more data in queue
 			return
 		}

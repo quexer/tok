@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/garyburd/redigo/redis"
 	"github.com/quexer/tok"
+	"log"
 	"time"
 )
 
@@ -63,15 +64,20 @@ func (p *queue) Enq(uid interface{}, data []byte, ttl ...uint32) error {
 	defer c.Close()
 
 	name := qname(uid)
-	c.Send("MULTI")
-	c.Send("RPUSH", name, data)
-	if len(ttl) > 0 && ttl[0] > 0 {
-		c.Send("EXPIRE", name, ttl[0])
+
+	_, err := c.Do("RPUSH", name, data)
+	if err != nil {
+		return err
 	}
-	_, err := c.Do("EXEC")
+	if len(ttl) > 0 && ttl[0] > 0 {
+		_, err := c.Do("EXPIRE", name, ttl[0])
+		if err != nil {
+			log.Println("[warning] expire err", err)
+		}
+	}
 
 	//	log.Println("enq", r)
-	return err
+	return nil
 }
 
 func (p *queue) Deq(uid interface{}) ([]byte, error) {
@@ -79,14 +85,9 @@ func (p *queue) Deq(uid interface{}) ([]byte, error) {
 	defer c.Close()
 
 	name := qname(uid)
-	c.Send("MULTI")
-	c.Send("LPOP", name)
-	r, err := redis.Values(c.Do("EXEC"))
 
-	if err != nil && err != redis.ErrNil {
-		return nil, err
-	}
-	b, err := redis.Bytes(r[0], err)
+	b, err := redis.Bytes(c.Do("LPOP", name))
+
 	if err != nil && err != redis.ErrNil {
 		return nil, err
 	}
