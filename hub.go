@@ -249,7 +249,7 @@ func (p *Hub) goOnline(conn *connection) {
 	} else {
 		if p.sso {
 			for _, old := range l {
-				log.Printf("kick %v\n", old)
+//				log.Printf("kick %v\n", old)
 				//notify before close connection
 				go func() {
 					old.Write(p.actor.Bye("sso"))
