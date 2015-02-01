@@ -13,8 +13,10 @@ import (
 
 func createPool(server, auth string) *redis.Pool {
 	return &redis.Pool{
-		MaxIdle:     3,
-		IdleTimeout: 240 * time.Second,
+		MaxIdle:     10,
+		MaxActive:   10,
+		Wait:        true,
+		IdleTimeout: 4 * time.Minute,
 		Dial: func() (redis.Conn, error) {
 			c, err := redis.Dial("tcp", server)
 			if err != nil {
