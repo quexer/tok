@@ -249,7 +249,7 @@ func (p *Hub) goOnline(conn *connection) {
 	} else {
 		if p.sso {
 			for _, old := range l {
-//				log.Printf("kick %v\n", old)
+				//				log.Printf("kick %v\n", old)
 				//notify before close connection
 				go func() {
 					old.Write(p.actor.Bye("sso"))
@@ -274,10 +274,11 @@ func (p *Hub) goOnline(conn *connection) {
 		}
 	}
 	p.cons[conn.uid] = l
-	go p.startRead(conn.uid)
+	go p.TryDeliver(conn.uid)
 }
 
-func (p *Hub) startRead(uid interface{}) {
+//try to deliver all messages, if uid is online
+func (p *Hub) TryDeliver(uid interface{}) {
 	p.chReadSignal <- uid
 }
 

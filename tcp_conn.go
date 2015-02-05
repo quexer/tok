@@ -124,7 +124,7 @@ func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
 		adapter := &tcpAdapter{conn: conn, readTimeout: AUTH_TIMEOUT}
 		b, err := adapter.Read()
 		if err != nil {
-//			log.Println("tcp auth err ", err)
+			//			log.Println("tcp auth err ", err)
 			adapter.Close()
 			return
 		}
