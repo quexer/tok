@@ -203,6 +203,8 @@ func (p *Hub) cache(ff *fatFrame) {
 	if err := p.q.Enq(f.uid, f.data, ff.ttl); err != nil {
 		ff.chErr <- err
 	}
+
+	go p.actor.OnCache(f.uid)
 }
 
 func (p *Hub) down(ff *fatFrame) {

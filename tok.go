@@ -17,6 +17,7 @@ type Actor interface {
 	Auth(r *http.Request) (interface{}, error)      //auth against http request. return uid if auth success
 	OnReceive(uid interface{}, data []byte)         //is invoked every time the server receive valid payload
 	OnSent(uid interface{}, data []byte, count int) //is invoked if message is sent successfully. count mean copy quantity
+	OnCache(uid interface{})                        //is invoked after message caching
 	//is invoked after a connection has been closed
 	//active, count of active connections for this user
 	OnClose(uid interface{}, active int)

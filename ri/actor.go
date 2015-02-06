@@ -18,6 +18,7 @@ type Checker interface {
 	CheckDown(target interface{}, v *kodec.Msg) bool
 	Dispatch(targets []interface{}, v *kodec.Msg)
 	ParseAddr(to string) ([]interface{}, error)
+	Cached(uid interface {})
 	Auth(r *http.Request) (interface{}, error)
 }
 
@@ -73,6 +74,11 @@ func (p *Actor) dispatchMsg(v *kodec.Msg) {
 func (p *Actor) OnSent(uid interface{}, data []byte, count int) {
 	//do nothing
 }
+
+func (p *Actor) OnCache(uid interface{}) {
+	p.checker.Cached(uid)
+}
+
 
 func (p *Actor) Ping() []byte {
 	b, err := kodec.Boxing(kodec.BuildCmd(kodec.Cmd_PING, "", tick()))
