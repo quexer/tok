@@ -12,6 +12,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -95,6 +96,19 @@ func (p *tcpAdapter) Close() {
 	p.conn.Close()
 }
 
+func buildReq(b []byte) *http.Request {
+	s := string(b)
+	a := strings.SplitN(s, "|||", 2)
+	var cookie, meta string
+	if len(a) == 2 {
+		meta = a[0]
+		cookie = a[1]
+	} else {
+		cookie = a[0]
+	}
+	return &http.Request{Header: http.Header{"Cookie": {cookie}, META_HEADER: {meta}}}
+}
+
 //Create Tcp listener with hub.
 //If config is not nil, a new hub will be created and replace the old one.
 //addr is the tcp address to be listened on.
@@ -128,7 +142,7 @@ func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
 			adapter.Close()
 			return
 		}
-		r := &http.Request{Header: http.Header{"Cookie": {string(b)}}}
+		r := buildReq(b)
 		uid, err := hub.actor.Auth(r)
 		if err != nil {
 			log.Println("401", err)

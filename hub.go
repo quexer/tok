@@ -91,7 +91,13 @@ func (p *Hub) run() {
 		case f := <-p.chUp:
 			//			log.Println("up data")
 			expUp.Add(1)
-			go p.actor.OnReceive(f.uid, f.data)
+			go func() {
+				b := p.actor.BeforeReceive(f.uid, f.data)
+				if b == nil {
+					b = f.data
+				}
+				p.actor.OnReceive(f.uid, b)
+			}()
 		case ff := <-p.chDown:
 			if len(p.cons[ff.frame.uid]) > 0 {
 				go p.down(ff, p.cons[ff.frame.uid])
@@ -208,8 +214,8 @@ func (p *Hub) cache(ff *fatFrame) {
 }
 
 func (p *Hub) down(ff *fatFrame, conns []*connection) {
-	defer func(){
-		if ff == nil{
+	defer func() {
+		if ff == nil {
 			log.Println("defer hub.down, ff is nil")
 			return
 		}
@@ -217,22 +223,26 @@ func (p *Hub) down(ff *fatFrame, conns []*connection) {
 	}()
 	expDown.Add(1)
 
-	if ff == nil{
+	if ff == nil {
 		log.Println("hub.down, ff is nil")
 		return
 	}
-	if ff.frame == nil{
+	if ff.frame == nil {
 		log.Println("hub.down, ff.frame is nil")
 		return
 	}
 
+	b := p.actor.BeforeSend(ff.frame.uid, ff.frame.data)
+	if b == nil {
+		b = ff.frame.data
+	}
 	count := 0
 	for _, con := range conns {
-		if con == nil{
+		if con == nil {
 			log.Println("hub.down, conn is nil")
 			continue
 		}
-		if err := con.Write(ff.frame.data); err != nil {
+		if err := con.Write(b); err != nil {
 			ff.chErr <- err
 			return
 		}
