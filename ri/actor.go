@@ -29,10 +29,10 @@ type Actor struct {
 }
 
 func (p *Actor) BeforeReceive(uid interface{}, data []byte) []byte{
-	return p.BeforeReceive(uid, data)
+	return p.checker.BeforeReceive(uid, data)
 }
 func (p *Actor) BeforeSend(uid interface{}, data []byte) []byte{
-	return p.BeforeSend(uid, data)
+	return p.checker.BeforeSend(uid, data)
 }
 
 func (p *Actor) OnReceive(uid interface{}, data []byte) {
