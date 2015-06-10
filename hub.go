@@ -152,7 +152,7 @@ func (p *Hub) popMsg(uid interface{}) {
 		}
 		expDeq.Add(1)
 		if err := p.Send(uid, b, -1); err != nil {
-			log.Println("send err after deq")
+			log.Println("pop err", err, uid)
 			return
 		}
 	}
