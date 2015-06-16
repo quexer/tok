@@ -28,5 +28,5 @@ type Actor interface {
 }
 
 const (
-	META_HEADER = "tok-meta"
+	META_HEADER = "Tok-Meta"
 )
