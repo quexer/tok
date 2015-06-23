@@ -152,7 +152,9 @@ func (p *Hub) popMsg(uid interface{}) {
 		}
 		expDeq.Add(1)
 		if err := p.Send(uid, b, -1); err != nil {
-			log.Println("pop err", err, uid)
+			if err := p.q.Enq(uid, b); err != nil {
+				log.Println("re-cache err", err, uid)
+			}
 			return
 		}
 	}
@@ -283,7 +285,13 @@ func (p *Hub) goOnline(conn *connection) {
 				//				log.Printf("kick %v\n", old)
 				//notify before close connection
 				go func() {
-					old.Write(p.actor.Bye("sso"))
+					b := p.actor.Bye("sso")
+					if b != nil {
+						if data := p.actor.BeforeSend(conn.uid, b); data != nil {
+							b = data
+						}
+						old.Write(b)
+					}
 					old.close()
 					//after sso kick, only one connection keep active
 					p.actor.OnClose(conn.uid, 1)
