@@ -47,6 +47,7 @@ type Hub struct {
 	chDown2       chan *fatFrame //for all user
 	chConState    chan *conState
 	chReadSignal  chan interface{}
+	chKick        chan interface{}
 	chQueryOnline chan chan []interface{}
 }
 
@@ -69,6 +70,7 @@ func createHub(actor Actor, q Queue, sso bool) *Hub {
 		chDown2:       make(chan *fatFrame),
 		chConState:    make(chan *conState),
 		chReadSignal:  make(chan interface{}),
+		chKick:        make(chan interface{}),
 		chQueryOnline: make(chan chan []interface{}),
 	}
 	go hub.run()
@@ -124,6 +126,8 @@ func (p *Hub) run() {
 			if len(p.cons[uid]) > 0 {
 				go p.popMsg(uid)
 			}
+		case uid := <-p.chKick:
+			p.innerKick(uid)
 		case chOnline := <-p.chQueryOnline:
 			result := make([]interface{}, 0, len(p.cons))
 			for uid := range p.cons {
@@ -275,6 +279,30 @@ func (p *Hub) goOffline(conn *connection) {
 	}(len(rest))
 }
 
+func (p *Hub) innerKick(uid interface{}) {
+	l := p.cons[uid]
+	if len(l) == 0 {
+		return
+	}
+
+	for _, old := range l {
+		go func() {
+			b := p.actor.Bye("kick")
+			if b != nil {
+				if data := p.actor.BeforeSend(uid, b); data != nil {
+					b = data
+				}
+				old.Write(b)
+			}
+			old.close()
+			//after active kick, no connection keep active
+			p.actor.OnClose(uid, 0)
+		}()
+	}
+
+	delete(p.cons, uid)
+}
+
 func (p *Hub) goOnline(conn *connection) {
 	l := p.cons[conn.uid]
 	if l == nil {
@@ -319,6 +347,11 @@ func (p *Hub) goOnline(conn *connection) {
 //try to deliver all messages, if uid is online
 func (p *Hub) TryDeliver(uid interface{}) {
 	p.chReadSignal <- uid
+}
+
+//kick all connections form uid
+func (p *Hub) Kick(uid interface{}) {
+	p.chKick <- uid
 }
 
 func (p *Hub) stateChange(conn *connection, online bool) {
