@@ -15,9 +15,9 @@ var ErrQueueRequired = errors.New("queue is required")
 //Application can interact with tok via this interface
 type Actor interface {
 	Auth(r *http.Request) (interface{}, error)         //auth against http request. return uid if auth success
-	BeforeReceive(uid interface{}, data []byte) []byte //is invoked every time the server receive valid payload
+	BeforeReceive(uid interface{}, data []byte) []byte //is invoked before OnReceive
 	OnReceive(uid interface{}, data []byte)            //is invoked every time the server receive valid payload
-	BeforeSend(uid interface{}, data []byte) []byte    //is invoked if message is sent successfully. count mean copy quantity
+	BeforeSend(uid interface{}, data []byte) []byte    //is invoked before Send
 	OnSent(uid interface{}, data []byte, count int)    //is invoked if message is sent successfully. count mean copy quantity
 	OnCache(uid interface{})                           //is invoked after message caching
 	//is invoked after a connection has been closed
