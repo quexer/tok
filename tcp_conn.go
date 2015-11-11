@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"sync"
 )
 
 const (
@@ -96,6 +97,12 @@ func (p *tcpAdapter) Close() {
 	p.conn.Close()
 }
 
+var reqPool = sync.Pool{
+	New: func() interface{} {
+		return &http.Request{}
+	},
+}
+
 func buildReq(b []byte) *http.Request {
 	s := string(b)
 	a := strings.SplitN(s, "|||", 2)
@@ -106,7 +113,9 @@ func buildReq(b []byte) *http.Request {
 	} else {
 		cookie = a[0]
 	}
-	return &http.Request{Header: http.Header{"Cookie": {cookie}, META_HEADER: {meta}}}
+	req := reqPool.Get().(*http.Request)
+	req.Header = http.Header{"Cookie": {cookie}, META_HEADER: {meta}}
+	return req
 }
 
 //Create Tcp listener with hub.
@@ -144,6 +153,7 @@ func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
 		}
 		r := buildReq(b)
 		uid, err := hub.actor.Auth(r)
+		reqPool.Put(r)
 		if err != nil {
 			log.Println("401", err)
 			adapter.Write(hub.actor.Bye("unauthorized"))
