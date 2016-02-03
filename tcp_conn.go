@@ -13,8 +13,8 @@ import (
 	"net"
 	"net/http"
 	"strings"
-	"time"
 	"sync"
+	"time"
 )
 
 const (
