@@ -4,7 +4,7 @@
 package ri
 
 import (
-	"code.google.com/p/goprotobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"fmt"
 	"github.com/quexer/kodec"
 	"github.com/quexer/tok"
