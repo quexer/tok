@@ -103,18 +103,24 @@ var reqPool = sync.Pool{
 	},
 }
 
+//meta|||cookie|||device id
 func buildReq(b []byte) *http.Request {
 	s := string(b)
-	a := strings.SplitN(s, "|||", 2)
-	var cookie, meta string
-	if len(a) == 2 {
+	a := strings.SplitN(s, "|||", 3)
+	var cookie, meta, dv string
+	switch len(a) {
+	case 1:
+		cookie = a[0]
+	case 2:
 		meta = a[0]
 		cookie = a[1]
-	} else {
-		cookie = a[0]
+	case 3:
+		meta = a[0]
+		cookie = a[1]
+		dv = a[2]
 	}
 	req := reqPool.Get().(*http.Request)
-	req.Header = http.Header{"Cookie": {cookie}, META_HEADER: {meta}}
+	req.Header = http.Header{"Cookie": {cookie}, META_HEADER: {meta}, DV_HEADER: {dv}}
 	return req
 }
 
