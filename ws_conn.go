@@ -5,7 +5,7 @@
 package tok
 
 import (
-	"code.google.com/p/go.net/websocket"
+	"golang.org/x/net/websocket"
 	"log"
 	"net/http"
 	"time"
