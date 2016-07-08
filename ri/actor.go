@@ -4,8 +4,8 @@
 package ri
 
 import (
-	"github.com/golang/protobuf/proto"
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/quexer/kodec"
 	"github.com/quexer/tok"
 	"log"
@@ -18,7 +18,7 @@ type Checker interface {
 	CheckDown(target interface{}, v *kodec.Msg) bool
 	Dispatch(targets []interface{}, v *kodec.Msg)
 	ParseAddr(to string) ([]interface{}, error)
-	Cached(uid interface {})
+	Cached(uid interface{})
 	Auth(r *http.Request) (interface{}, error)
 	BeforeReceive(uid interface{}, data []byte) []byte
 	BeforeSend(uid interface{}, data []byte) []byte
@@ -28,10 +28,10 @@ type Actor struct {
 	checker Checker
 }
 
-func (p *Actor) BeforeReceive(uid interface{}, data []byte) []byte{
+func (p *Actor) BeforeReceive(uid interface{}, data []byte) []byte {
 	return p.checker.BeforeReceive(uid, data)
 }
-func (p *Actor) BeforeSend(uid interface{}, data []byte) []byte{
+func (p *Actor) BeforeSend(uid interface{}, data []byte) []byte {
 	return p.checker.BeforeSend(uid, data)
 }
 
@@ -88,7 +88,6 @@ func (p *Actor) OnCache(uid interface{}) {
 	p.checker.Cached(uid)
 }
 
-
 func (p *Actor) Ping() []byte {
 	b, err := kodec.Boxing(kodec.BuildCmd(kodec.Cmd_PING, "", tick()))
 	if err != nil {
@@ -97,7 +96,7 @@ func (p *Actor) Ping() []byte {
 	return b
 }
 
-func (p *Actor) Bye(reason string) []byte {
+func (p *Actor) Bye(uid interface{}, reason string) []byte {
 	b, err := kodec.Boxing(kodec.BuildCmd(kodec.Cmd_UNAUTHORIZED, reason, tick()))
 	if err != nil {
 		log.Panic("build bye err", err)

@@ -287,7 +287,7 @@ func (p *Hub) innerKick(uid interface{}) {
 
 	for _, old := range l {
 		go func() {
-			b := p.actor.Bye("kick")
+			b := p.actor.Bye(uid, "kick")
 			if b != nil {
 				if data := p.actor.BeforeSend(uid, b); data != nil {
 					b = data
@@ -313,7 +313,7 @@ func (p *Hub) goOnline(conn *connection) {
 				//				log.Printf("kick %v\n", old)
 				//notify before close connection
 				go func() {
-					b := p.actor.Bye("sso")
+					b := p.actor.Bye(conn.uid, "sso")
 					if b != nil {
 						if data := p.actor.BeforeSend(conn.uid, b); data != nil {
 							b = data

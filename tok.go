@@ -24,7 +24,7 @@ type Actor interface {
 	//active, count of active connections for this user
 	OnClose(uid interface{}, active int)
 	Ping() []byte             //Build ping payload.  auto ping feature will be disabled if this method return nil
-	Bye(reason string) []byte //Build payload for different reason before connection is closed
+	Bye(uid interface{}, reason string) []byte //Build payload for different reason before connection is closed
 }
 
 const (

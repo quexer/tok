@@ -71,7 +71,7 @@ func CreateWsHandler(hub *Hub, config *HubConfig, txt bool) (*Hub, http.Handler)
 		uid, err := hub.actor.Auth(r)
 		if err != nil {
 			log.Println("401", err)
-			adapter.Write(hub.actor.Bye("unauthorized"))
+			adapter.Write(hub.actor.Bye(uid, "unauthorized"))
 			adapter.Close()
 			return
 		}
