@@ -161,8 +161,6 @@ func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
 		uid, err := hub.actor.Auth(r)
 		reqPool.Put(r)
 		if err != nil {
-			log.Println("401", err)
-			adapter.Write(hub.actor.Bye(uid, "unauthorized"))
 			adapter.Close()
 			return
 		}

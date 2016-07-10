@@ -105,11 +105,13 @@ func initConnection(uid interface{}, adapter conAdapter, hub *Hub) {
 					ticker.Stop()
 					return
 				}
-				b := hub.actor.BeforeSend(uid, hub.actor.Ping())
-				if b == nil {
-					b = hub.actor.Ping()
+				b, err := hub.actor.BeforeSend(uid, hub.actor.Ping())
+				if err == nil {
+					if b == nil {
+						b = hub.actor.Ping()
+					}
+					conn.Write(b)
 				}
-				conn.Write(b)
 			}
 		}()
 	}

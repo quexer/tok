@@ -94,7 +94,10 @@ func (p *Hub) run() {
 			//			log.Println("up data")
 			expUp.Add(1)
 			go func() {
-				b := p.actor.BeforeReceive(f.uid, f.data)
+				b, err := p.actor.BeforeReceive(f.uid, f.data)
+				if err != nil {
+					return
+				}
 				if b == nil {
 					b = f.data
 				}
@@ -238,7 +241,10 @@ func (p *Hub) down(ff *fatFrame, conns []*connection) {
 		return
 	}
 
-	b := p.actor.BeforeSend(ff.frame.uid, ff.frame.data)
+	b, err := p.actor.BeforeSend(ff.frame.uid, ff.frame.data)
+	if err != nil {
+		return
+	}
 	if b == nil {
 		b = ff.frame.data
 	}
@@ -289,10 +295,13 @@ func (p *Hub) innerKick(uid interface{}) {
 		go func() {
 			b := p.actor.Bye(uid, "kick")
 			if b != nil {
-				if data := p.actor.BeforeSend(uid, b); data != nil {
-					b = data
+				data, err := p.actor.BeforeSend(uid, b)
+				if err == nil {
+					if data != nil {
+						b = data
+					}
+					old.Write(b)
 				}
-				old.Write(b)
 			}
 			old.close()
 			//after active kick, no connection keep active
@@ -315,10 +324,13 @@ func (p *Hub) goOnline(conn *connection) {
 				go func() {
 					b := p.actor.Bye(conn.uid, "sso")
 					if b != nil {
-						if data := p.actor.BeforeSend(conn.uid, b); data != nil {
-							b = data
+						data, err := p.actor.BeforeSend(conn.uid, b)
+						if err == nil {
+							if data != nil {
+								b = data
+							}
+							old.Write(b)
 						}
-						old.Write(b)
 					}
 					old.close()
 					//after sso kick, only one connection keep active

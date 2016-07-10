@@ -20,18 +20,18 @@ type Checker interface {
 	ParseAddr(to string) ([]interface{}, error)
 	Cached(uid interface{})
 	Auth(r *http.Request) (interface{}, error)
-	BeforeReceive(uid interface{}, data []byte) []byte
-	BeforeSend(uid interface{}, data []byte) []byte
+	BeforeReceive(uid interface{}, data []byte) ([]byte, error)
+	BeforeSend(uid interface{}, data []byte) ([]byte, error)
 }
 
 type Actor struct {
 	checker Checker
 }
 
-func (p *Actor) BeforeReceive(uid interface{}, data []byte) []byte {
+func (p *Actor) BeforeReceive(uid interface{}, data []byte) ([]byte, error) {
 	return p.checker.BeforeReceive(uid, data)
 }
-func (p *Actor) BeforeSend(uid interface{}, data []byte) []byte {
+func (p *Actor) BeforeSend(uid interface{}, data []byte) ([]byte, error) {
 	return p.checker.BeforeSend(uid, data)
 }
 
