@@ -158,6 +158,7 @@ func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
 			return
 		}
 		r := buildReq(b)
+		r.RemoteAddr = conn.RemoteAddr().String()
 		uid, err := hub.actor.Auth(r)
 		reqPool.Put(r)
 		if err != nil {
