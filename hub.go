@@ -287,29 +287,15 @@ func (p *Hub) goOffline(conn *connection) {
 
 func (p *Hub) innerKick(uid interface{}) {
 	l := p.cons[uid]
-	if len(l) == 0 {
-		return
-	}
-
 	for _, old := range l {
-		go func() {
-			b := p.actor.Bye(uid, "kick")
-			if b != nil {
-				data, err := p.actor.BeforeSend(uid, b)
-				if err == nil {
-					if data != nil {
-						b = data
-					}
-					old.Write(b)
-				}
-			}
-			old.close()
-			//after active kick, no connection keep active
-			p.actor.OnClose(uid, 0)
-		}()
+		go func(con *connection) {
+			con.close()
+		}(old)
 	}
-
 	delete(p.cons, uid)
+	//after active kick, no connection keep active
+	go p.actor.OnClose(uid, 0)
+
 }
 
 func (p *Hub) goOnline(conn *connection) {
