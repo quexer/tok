@@ -13,7 +13,6 @@ import (
 	"net"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -97,12 +96,6 @@ func (p *tcpAdapter) Close() {
 	p.conn.Close()
 }
 
-var reqPool = sync.Pool{
-	New: func() interface{} {
-		return &http.Request{}
-	},
-}
-
 //meta|||cookie|||device id
 func buildReq(b []byte) *http.Request {
 	s := string(b)
@@ -119,7 +112,7 @@ func buildReq(b []byte) *http.Request {
 		cookie = a[1]
 		dv = a[2]
 	}
-	req := reqPool.Get().(*http.Request)
+	req := &http.Request{}
 	req.Header = http.Header{"Cookie": {cookie}, META_HEADER: {meta}, DV_HEADER: {dv}}
 	return req
 }
@@ -160,7 +153,6 @@ func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
 		r := buildReq(b)
 		r.RemoteAddr = conn.RemoteAddr().String()
 		uid, err := hub.actor.Auth(r)
-		reqPool.Put(r)
 		if err != nil {
 			adapter.Close()
 			return
