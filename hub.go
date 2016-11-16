@@ -1,7 +1,3 @@
-/**
- * hub, core of chat application
- */
-
 package tok
 
 import (
