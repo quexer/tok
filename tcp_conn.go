@@ -17,11 +17,12 @@ import (
 )
 
 const (
-	tcp_header_len = 4
+	tcpHeaderLen = 4
 )
 
 var (
-	TCP_MAX_PACK_LEN uint32 = 4 * 1024 * 1024 //Upper limit for single message
+	//TCP_MAX_PACK_LEN upper limit for single message
+	TCP_MAX_PACK_LEN uint32 = 4 * 1024 * 1024
 )
 
 type tcpAdapter struct {
@@ -42,7 +43,7 @@ func (p *tcpAdapter) Read() ([]byte, error) {
 	}
 
 	//read header
-	b := make([]byte, tcp_header_len)
+	b := make([]byte, tcpHeaderLen)
 	if _, err := io.ReadFull(p.conn, b); err != nil {
 		return nil, err
 	}
@@ -117,7 +118,7 @@ func buildReq(b []byte) *http.Request {
 	return req
 }
 
-//Create Tcp listener with hub.
+//Listen create Tcp listener with hub.
 //If config is not nil, a new hub will be created and replace the old one.
 //addr is the tcp address to be listened on.
 //return error if listen failed.

@@ -29,14 +29,14 @@ type frame struct {
 	data []byte
 }
 
-//Config to create new Hub
+//HubConfig config struct for creating new Hub
 type HubConfig struct {
 	Actor Actor //Actor implement dispatch logic
 	Q     Queue //Message Queue, if nil, message to offline user will not be cached
 	Sso   bool  //If it's true, new connection  with same uid will kick off old ones
 }
 
-//Dispatch message between connections
+//Hub core of tok, dispatch message between connections
 type Hub struct {
 	sso           bool
 	actor         Actor
@@ -199,7 +199,7 @@ func (p *Hub) Send(to interface{}, b []byte, ttl ...int) error {
 	return <-ff.chErr
 }
 
-//Query online user list
+//Online query online user list
 func (p *Hub) Online() []interface{} {
 	ch := make(chan []interface{})
 	p.chQueryOnline <- ch
@@ -258,7 +258,7 @@ func (p *Hub) down(ff *fatFrame, conns []*connection) {
 			ff.chErr <- err
 			return
 		}
-		count += 1
+		count ++
 	}
 
 	go p.actor.OnSent(ff.frame.uid, ff.frame.data, count)
@@ -342,12 +342,12 @@ func (p *Hub) goOnline(conn *connection) {
 	go p.TryDeliver(conn.uid)
 }
 
-//try to deliver all messages, if uid is online
+//TryDeliver try to deliver all messages, if uid is online
 func (p *Hub) TryDeliver(uid interface{}) {
 	p.chReadSignal <- uid
 }
 
-//kick all connections form uid
+//Kick kick all connections of uid
 func (p *Hub) Kick(uid interface{}) {
 	p.chKick <- uid
 }

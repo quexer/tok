@@ -9,10 +9,12 @@ import (
 	"net/http"
 )
 
+//ErrOffline occurs while sending message to online user only. see Hub.Send
 var ErrOffline = errors.New("offline")
+//ErrQueueRequired occurs while sending "cacheable" message without queue
 var ErrQueueRequired = errors.New("queue is required")
 
-//Application can interact with tok via this interface
+//Actor application should implement this interface to interact with tok
 type Actor interface {
 	Auth(r *http.Request) (interface{}, error)                  //auth against http request. return uid if auth success
 	BeforeReceive(uid interface{}, data []byte) ([]byte, error) //is invoked before OnReceive
@@ -28,6 +30,8 @@ type Actor interface {
 }
 
 const (
+	//META_HEADER key for meta data
 	META_HEADER = "Tok-Meta"
+	//DV_HEADER key for device info
 	DV_HEADER   = "Tok-Dv"
 )

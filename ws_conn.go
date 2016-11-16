@@ -28,11 +28,12 @@ func (p *wsAdapter) Read() ([]byte, error) {
 		var s string
 		err := websocket.Message.Receive(p.conn, &s)
 		return []byte(s), err
-	} else {
-		var b []byte
-		err := websocket.Message.Receive(p.conn, &b)
-		return b, err
 	}
+
+	var b []byte
+	err := websocket.Message.Receive(p.conn, &b)
+	return b, err
+
 }
 
 func (p *wsAdapter) Write(b []byte) error {
@@ -43,9 +44,9 @@ func (p *wsAdapter) Write(b []byte) error {
 
 	if p.txt {
 		return websocket.Message.Send(p.conn, string(b))
-	} else {
-		return websocket.Message.Send(p.conn, b)
 	}
+
+	return websocket.Message.Send(p.conn, b)
 }
 
 func (p *wsAdapter) Close() {

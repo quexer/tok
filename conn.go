@@ -11,10 +11,14 @@ import (
 )
 
 var (
-	READ_TIMEOUT         time.Duration = 0                //read timeout,
-	WRITE_TIMEOUT                      = time.Minute      //write timeout
-	AUTH_TIMEOUT                       = time.Second * 5  //auth timeout
-	SERVER_PING_INTERVAL               = time.Second * 30 //server ping interval
+	//READ_TIMEOUT read timeout duration
+	READ_TIMEOUT         time.Duration
+	//WRITE_TIMEOUT write timeout duration
+	WRITE_TIMEOUT                      = time.Minute
+	//AUTH_TIMEOUT auth timeout duration
+	AUTH_TIMEOUT                       = time.Second * 5
+	//SERVER_PING_INTERVAL server ping interval duration
+	SERVER_PING_INTERVAL               = time.Second * 30
 )
 
 type connection struct {
@@ -100,7 +104,7 @@ func initConnection(uid interface{}, adapter conAdapter, hub *Hub) {
 	if hub.actor.Ping() != nil {
 		ticker := time.NewTicker(SERVER_PING_INTERVAL)
 		go func() {
-			for _ = range ticker.C {
+			for range ticker.C {
 				if conn.isClosed() {
 					ticker.Stop()
 					return
