@@ -12,13 +12,13 @@ import (
 
 var (
 	//READ_TIMEOUT read timeout duration
-	READ_TIMEOUT         time.Duration
+	READ_TIMEOUT time.Duration
 	//WRITE_TIMEOUT write timeout duration
-	WRITE_TIMEOUT                      = time.Minute
+	WRITE_TIMEOUT = time.Minute
 	//AUTH_TIMEOUT auth timeout duration
-	AUTH_TIMEOUT                       = time.Second * 5
+	AUTH_TIMEOUT = time.Second * 5
 	//SERVER_PING_INTERVAL server ping interval duration
-	SERVER_PING_INTERVAL               = time.Second * 30
+	SERVER_PING_INTERVAL = time.Second * 30
 )
 
 type connection struct {

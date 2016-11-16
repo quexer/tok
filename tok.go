@@ -11,6 +11,7 @@ import (
 
 //ErrOffline occurs while sending message to online user only. see Hub.Send
 var ErrOffline = errors.New("offline")
+
 //ErrQueueRequired occurs while sending "cacheable" message without queue
 var ErrQueueRequired = errors.New("queue is required")
 
@@ -33,5 +34,5 @@ const (
 	//META_HEADER key for meta data
 	META_HEADER = "Tok-Meta"
 	//DV_HEADER key for device info
-	DV_HEADER   = "Tok-Dv"
+	DV_HEADER = "Tok-Dv"
 )

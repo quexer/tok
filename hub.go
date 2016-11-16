@@ -167,12 +167,12 @@ func (p *Hub) popMsg(uid interface{}) {
 	}
 }
 
-//Send message to someone,
-//ttl is expiry seconds. 0 means forever
-//if ttl >= 0 and user is offline, message will be cached for ttl seconds
-//if ttl < 0 and user is offline, ErrOffline will be returned
-//if ttl >=0 and user is online, but error occurred during send, message will be cached
-//if ttl < 0 and user is online, but error occurred during send, the error will be returned
+//Send message to someone.
+//ttl is expiry seconds. 0 means forever.
+//If ttl >= 0 and user is offline, message will be cached for ttl seconds.
+//If ttl < 0 and user is offline, ErrOffline will be returned.
+//If ttl >=0 and user is online, but error occurred during send, message will be cached.
+//If ttl < 0 and user is online, but error occurred during send, the error will be returned.
 func (p *Hub) Send(to interface{}, b []byte, ttl ...int) error {
 	t := -1
 	if len(ttl) > 0 {
@@ -258,7 +258,7 @@ func (p *Hub) down(ff *fatFrame, conns []*connection) {
 			ff.chErr <- err
 			return
 		}
-		count ++
+		count++
 	}
 
 	go p.actor.OnSent(ff.frame.uid, ff.frame.data, count)
