@@ -1,17 +1,17 @@
 tok
 ===
 
-"talk", a library for building chat application
+"talk", a library to simplify creating IM application
 
 installation
 ------
 
-    go get github.com/quexer/tok
+    go get gopkg.in/quexer/tok.v2
 
 usage
 -----
 
-    import "github.com/quexer/tok"
+    import "gopkg.in/quexer/tok.v2"
 
 
 TBD
