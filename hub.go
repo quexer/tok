@@ -14,6 +14,11 @@ var (
 	expErr    = expvar.NewInt("tokErr")
 )
 
+type checkFrame struct {
+	uid    interface{}
+	chBool chan bool //channel to return online status
+}
+
 type fatFrame struct {
 	frame *frame //frame to be sent
 	ttl   uint32
@@ -45,6 +50,7 @@ type Hub struct {
 	chReadSignal  chan interface{}
 	chKick        chan interface{}
 	chQueryOnline chan chan []interface{}
+	chCheck       chan *checkFrame
 }
 
 func createHub(actor Actor, q Queue, sso bool) *Hub {
@@ -68,6 +74,7 @@ func createHub(actor Actor, q Queue, sso bool) *Hub {
 		chReadSignal:  make(chan interface{}),
 		chKick:        make(chan interface{}),
 		chQueryOnline: make(chan chan []interface{}),
+		chCheck:       make(chan *checkFrame),
 	}
 	go hub.run()
 	return hub
@@ -119,7 +126,10 @@ func (p *Hub) run() {
 			} else {
 				go p.cache(ff)
 			}
-
+		case cf := <-p.chCheck:
+			_, ok := p.cons[cf.uid]
+			cf.chBool <- ok
+			close(cf.chBool)
 		case uid := <-p.chReadSignal:
 			//only pop msg for online user
 			if len(p.cons[uid]) > 0 {
@@ -193,6 +203,13 @@ func (p *Hub) Send(to interface{}, b []byte, ttl ...int) error {
 	ff = &fatFrame{frame: &frame{uid: to, data: b}, ttl: uint32(t), chErr: make(chan error)}
 	go p.cache(ff)
 	return <-ff.chErr
+}
+
+//Check check user online or not
+func (p *Hub) Check(uid interface{}) bool {
+	cf := &checkFrame{uid: uid, chBool: make(chan bool)}
+	p.chCheck <- cf
+	return <-cf.chBool
 }
 
 //Online query online user list
