@@ -205,8 +205,8 @@ func (p *Hub) Send(to interface{}, b []byte, ttl ...int) error {
 	return <-ff.chErr
 }
 
-//Check check user online or not
-func (p *Hub) Check(uid interface{}) bool {
+//CheckOnline return whether user online or not
+func (p *Hub) CheckOnline(uid interface{}) bool {
 	cf := &checkFrame{uid: uid, chBool: make(chan bool)}
 	p.chCheck <- cf
 	return <-cf.chBool
