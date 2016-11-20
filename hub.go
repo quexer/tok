@@ -11,7 +11,6 @@ var (
 	expDown   = expvar.NewInt("tokDown")
 	expEnq    = expvar.NewInt("tokEnq")
 	expDeq    = expvar.NewInt("tokDeq")
-	expErr    = expvar.NewInt("tokErr")
 )
 
 type checkFrame struct {
@@ -44,8 +43,7 @@ type Hub struct {
 	q             Queue
 	cons          map[interface{}][]*connection //connection list
 	chUp          chan *frame
-	chDown        chan *fatFrame //for online user
-	chDown2       chan *fatFrame //for all user
+	chDown        chan *fatFrame
 	chConState    chan *conState
 	chReadSignal  chan interface{}
 	chKick        chan interface{}
@@ -69,7 +67,6 @@ func createHub(actor Actor, q Queue, sso bool) *Hub {
 		cons:          make(map[interface{}][]*connection),
 		chUp:          make(chan *frame),
 		chDown:        make(chan *fatFrame),
-		chDown2:       make(chan *fatFrame),
 		chConState:    make(chan *conState),
 		chReadSignal:  make(chan interface{}),
 		chKick:        make(chan interface{}),
@@ -82,6 +79,7 @@ func createHub(actor Actor, q Queue, sso bool) *Hub {
 
 func (p *Hub) run() {
 	for {
+
 		select {
 		case state := <-p.chConState:
 			//			log.Printf("connection state change: %v, %v \n", state.online, &state.con)
@@ -107,24 +105,16 @@ func (p *Hub) run() {
 				p.actor.OnReceive(f.uid, b)
 			}()
 		case ff := <-p.chDown:
-			if len(p.cons[ff.frame.uid]) > 0 {
-				go p.down(ff, p.cons[ff.frame.uid])
+			if l := p.cons[ff.frame.uid]; len(l) > 0 {
+				//online
+				go p.down(ff, l)
 			} else {
-				func() {
-					defer func() {
-						if err := recover(); err != nil {
-							log.Println("bug:", err)
-						}
-					}()
+				if ff.ttl == 0 {
 					ff.chErr <- ErrOffline
 					close(ff.chErr)
-				}()
-			}
-		case ff := <-p.chDown2:
-			if len(p.cons[ff.frame.uid]) > 0 {
-				go p.down(ff, p.cons[ff.frame.uid])
-			} else {
-				go p.cache(ff)
+				} else {
+					go p.cache(ff)
+				}
 			}
 		case cf := <-p.chCheck:
 			_, ok := p.cons[cf.uid]
@@ -164,7 +154,7 @@ func (p *Hub) popMsg(uid interface{}) {
 			return
 		}
 		expDeq.Add(1)
-		if err := p.Send(uid, b, -1); err != nil {
+		if err := p.Send(uid, b, 0); err != nil {
 			if err := p.q.Enq(uid, b); err != nil {
 				log.Println("re-cache err", err, uid)
 			}
@@ -174,35 +164,21 @@ func (p *Hub) popMsg(uid interface{}) {
 }
 
 //Send message to someone.
-//ttl is expiry seconds. 0 means forever.
-//If ttl >= 0 and user is offline, message will be cached for ttl seconds.
-//If ttl < 0 and user is offline, ErrOffline will be returned.
-//If ttl >=0 and user is online, but error occurred during send, message will be cached.
-//If ttl < 0 and user is online, but error occurred during send, the error will be returned.
-func (p *Hub) Send(to interface{}, b []byte, ttl ...int) error {
-	t := -1
-	if len(ttl) > 0 {
-		t = ttl[0]
-	}
+//ttl is expiry seconds. 0 means only send to online user
+//If ttl = 0 and user is offline, ErrOffline will be returned.
+//If ttl > 0 and user is offline or online but send fail, message will be cached for ttl seconds.
+func (p *Hub) Send(to interface{}, b []byte, ttl uint32) error {
 
-	ff := &fatFrame{frame: &frame{uid: to, data: b}, ttl: uint32(t), chErr: make(chan error)}
-	if t > 0 {
-		p.chDown2 <- ff
-	} else {
-		p.chDown <- ff
-	}
+	ff := &fatFrame{frame: &frame{uid: to, data: b}, ttl: ttl, chErr: make(chan error)}
+	p.chDown <- ff
 	err := <-ff.chErr
-	if err == nil {
-		return nil
+	if ttl > 0 && err != nil {
+		//online send err
+		ff.chErr = make(chan error) //create new channel
+		go p.cache(ff)
+		return <-ff.chErr
 	}
-	expErr.Add(1)
-	if t < 0 {
-		return err
-	}
-
-	ff = &fatFrame{frame: &frame{uid: to, data: b}, ttl: uint32(t), chErr: make(chan error)}
-	go p.cache(ff)
-	return <-ff.chErr
+	return err
 }
 
 //CheckOnline return whether user online or not
@@ -231,8 +207,6 @@ func (p *Hub) cache(ff *fatFrame) {
 	if err := p.q.Enq(f.uid, f.data, ff.ttl); err != nil {
 		ff.chErr <- err
 	}
-
-	go p.actor.OnCache(f.uid)
 }
 
 func (p *Hub) down(ff *fatFrame, conns []*connection) {
@@ -352,11 +326,11 @@ func (p *Hub) goOnline(conn *connection) {
 		}
 	}
 	p.cons[conn.uid] = l
-	go p.TryDeliver(conn.uid)
+	go p.tryDeliver(conn.uid)
 }
 
-//TryDeliver try to deliver all messages, if uid is online
-func (p *Hub) TryDeliver(uid interface{}) {
+//tryDeliver try to deliver all messages, if uid is online
+func (p *Hub) tryDeliver(uid interface{}) {
 	p.chReadSignal <- uid
 }
 
