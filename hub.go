@@ -251,7 +251,7 @@ func (p *Hub) down(ff *fatFrame, conns []*connection) {
 }
 
 func (p *Hub) goOffline(conn *connection) {
-	l := p.cons[conn.dv.Uid()]
+	l := p.cons[conn.uid()]
 	rest := connExclude(l, conn)
 
 	//this connection has gotten offline, ignore
@@ -260,70 +260,65 @@ func (p *Hub) goOffline(conn *connection) {
 	}
 
 	if len(rest) == 0 {
-		delete(p.cons, conn.dv.Uid())
+		delete(p.cons, conn.uid())
 	} else {
-		p.cons[conn.dv.Uid()] = rest
+		p.cons[conn.uid()] = rest
 	}
 
-	go func() {
-		conn.close()
-		p.actor.OnClose(conn.dv)
-	}()
+	go p.close(conn)
 }
 
 func (p *Hub) innerKick(uid interface{}) {
-	l := p.cons[uid]
-	for _, old := range l {
-		go func(con *connection) {
-			con.close()
-			p.actor.OnClose(con.dv)
-		}(old)
+	for _, conn := range p.cons[uid] {
+		go p.close(conn)
 	}
 	delete(p.cons, uid)
 }
 
-func (p *Hub) goOnline(conn *connection) {
-	l := p.cons[conn.dv.Uid()]
-	if l == nil {
-		l = []*connection{conn}
-	} else {
-		if p.sso {
-			for _, c := range l {
-				//				log.Printf("kick %v\n", old)
-				//notify before close connection
-				go func(old *connection) {
-					b := p.actor.Bye(old.dv, "sso")
-					if b != nil {
-						data, err := p.actor.BeforeSend(old.dv, b)
-						if err == nil {
-							if data != nil {
-								b = data
-							}
-							old.Write(b)
-						}
-					}
-					old.close()
-					//after sso kick, only one connection keep active
-					p.actor.OnClose(old.dv)
-				}(c)
+func (p *Hub) byeThenClose(conn *connection) {
+	b := p.actor.Bye(conn.dv, "sso")
+	if b != nil {
+		data, err := p.actor.BeforeSend(conn.dv, b)
+		if err == nil {
+			if data != nil {
+				b = data
 			}
-			l = []*connection{conn}
-		} else {
-			exists := false
-			for _, c := range l {
-				if c == conn {
-					log.Println("warning, repeat online: ", c)
-					exists = true
-					break
-				}
-			}
-			if !exists {
-				l = append(l, conn)
-			}
+			conn.Write(b)
 		}
 	}
-	p.cons[conn.dv.Uid()] = l
-	go p.tryDeliver(conn.dv.Uid())
+	p.close(conn)
+}
+
+func (p *Hub) close(conn *connection) {
+	conn.close()
+	p.actor.OnClose(conn.dv)
+}
+
+func (p *Hub) goOnline(conn *connection) {
+	defer func() {
+		go p.tryDeliver(conn.uid())
+	}()
+
+	l := p.cons[conn.uid()]
+	if l == nil {
+		p.cons[conn.uid()] = []*connection{conn}
+		return
+	}
+
+	if p.sso {
+		for _, c := range l {
+			//notify before close connection
+			go p.byeThenClose(c)
+		}
+		p.cons[conn.uid()] = []*connection{conn}
+		return
+	}
+
+	//it's a new connection
+	if len(connExclude(l, conn)) == len(l) {
+		l = append(l, conn)
+		p.cons[conn.uid()] = l
+	}
 }
 
 //tryDeliver try to deliver all messages, if uid is online

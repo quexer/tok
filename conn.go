@@ -21,6 +21,7 @@ var (
 	SERVER_PING_INTERVAL = time.Second * 30
 )
 
+//abstract connection,
 type connection struct {
 	sync.RWMutex
 	wLock   sync.Mutex
@@ -42,6 +43,10 @@ type conAdapter interface {
 	Read() ([]byte, error) //Read payload data from real connection. Unpack from basic data frame
 	Write([]byte) error    //Write payload data to real connection. Pack into basic data frame
 	Close()                //Close the real connection
+}
+
+func (conn *connection) uid() interface{} {
+	return conn.dv.Uid()
 }
 
 func (conn *connection) isClosed() bool {

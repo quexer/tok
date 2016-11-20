@@ -2,22 +2,22 @@ package tok
 
 type Device interface {
 	Uid() interface{}
-	DvId() interface{}
+	Id() interface{}
 	GetMeta(string) string
 	PutMeta(string, string)
 }
 
 type device struct {
 	uid  interface{}
-	dvId string
+	id   string
 	meta syncMap
 }
 
 func (p *device) Uid() interface{} {
 	return p.uid
 }
-func (p *device) DvId() interface{} {
-	return p.dvId
+func (p *device) Id() interface{} {
+	return p.id
 }
 
 func (p *device) GetMeta(key string) string {
