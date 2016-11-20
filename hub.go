@@ -25,7 +25,7 @@ type fatFrame struct {
 }
 
 type frame struct {
-	uid  interface{}
+	dv   *device
 	data []byte
 }
 
@@ -95,17 +95,17 @@ func (p *Hub) run() {
 			//			log.Println("up data")
 			expUp.Add(1)
 			go func() {
-				b, err := p.actor.BeforeReceive(f.uid, f.data)
+				b, err := p.actor.BeforeReceive(f.dv, f.data)
 				if err != nil {
 					return
 				}
 				if b == nil {
 					b = f.data
 				}
-				p.actor.OnReceive(f.uid, b)
+				p.actor.OnReceive(f.dv, b)
 			}()
 		case ff := <-p.chDown:
-			if l := p.cons[ff.frame.uid]; len(l) > 0 {
+			if l := p.cons[ff.frame.dv.Uid()]; len(l) > 0 {
 				//online
 				go p.down(ff, l)
 			} else {
@@ -169,7 +169,7 @@ func (p *Hub) popMsg(uid interface{}) {
 //If ttl > 0 and user is offline or online but send fail, message will be cached for ttl seconds.
 func (p *Hub) Send(to interface{}, b []byte, ttl uint32) error {
 
-	ff := &fatFrame{frame: &frame{uid: to, data: b}, ttl: ttl, chErr: make(chan error)}
+	ff := &fatFrame{frame: &frame{dv: &device{uid: to}, data: b}, ttl: ttl, chErr: make(chan error)}
 	p.chDown <- ff
 	err := <-ff.chErr
 	if ttl > 0 && err != nil {
@@ -204,7 +204,7 @@ func (p *Hub) cache(ff *fatFrame) {
 	}
 
 	f := ff.frame
-	if err := p.q.Enq(f.uid, f.data, ff.ttl); err != nil {
+	if err := p.q.Enq(f.dv.Uid(), f.data, ff.ttl); err != nil {
 		ff.chErr <- err
 	}
 }
@@ -228,15 +228,15 @@ func (p *Hub) down(ff *fatFrame, conns []*connection) {
 		return
 	}
 
-	b, err := p.actor.BeforeSend(ff.frame.uid, ff.frame.data)
-	if err != nil {
-		return
-	}
-	if b == nil {
-		b = ff.frame.data
-	}
-	count := 0
 	for _, con := range conns {
+		b, err := p.actor.BeforeSend(ff.frame.dv, ff.frame.data)
+		if err != nil {
+			return
+		}
+		if b == nil {
+			b = ff.frame.data
+		}
+
 		if con == nil {
 			log.Println("hub.down, conn is nil")
 			continue
@@ -245,14 +245,13 @@ func (p *Hub) down(ff *fatFrame, conns []*connection) {
 			ff.chErr <- err
 			return
 		}
-		count++
+		go p.actor.OnSent(ff.frame.dv, ff.frame.data)
 	}
 
-	go p.actor.OnSent(ff.frame.uid, ff.frame.data, count)
 }
 
 func (p *Hub) goOffline(conn *connection) {
-	l := p.cons[conn.uid]
+	l := p.cons[conn.dv.Uid()]
 	rest := connExclude(l, conn)
 
 	//this connection has gotten offline, ignore
@@ -261,15 +260,15 @@ func (p *Hub) goOffline(conn *connection) {
 	}
 
 	if len(rest) == 0 {
-		delete(p.cons, conn.uid)
+		delete(p.cons, conn.dv.Uid())
 	} else {
-		p.cons[conn.uid] = rest
+		p.cons[conn.dv.Uid()] = rest
 	}
 
-	go func(active int) {
+	go func() {
 		conn.close()
-		p.actor.OnClose(conn.uid, active)
-	}(len(rest))
+		p.actor.OnClose(conn.dv)
+	}()
 }
 
 func (p *Hub) innerKick(uid interface{}) {
@@ -277,27 +276,25 @@ func (p *Hub) innerKick(uid interface{}) {
 	for _, old := range l {
 		go func(con *connection) {
 			con.close()
+			p.actor.OnClose(con.dv)
 		}(old)
 	}
 	delete(p.cons, uid)
-	//after active kick, no connection keep active
-	go p.actor.OnClose(uid, 0)
-
 }
 
 func (p *Hub) goOnline(conn *connection) {
-	l := p.cons[conn.uid]
+	l := p.cons[conn.dv.Uid()]
 	if l == nil {
 		l = []*connection{conn}
 	} else {
 		if p.sso {
-			for _, old := range l {
+			for _, c := range l {
 				//				log.Printf("kick %v\n", old)
 				//notify before close connection
-				go func() {
-					b := p.actor.Bye(conn.uid, "sso")
+				go func(old *connection) {
+					b := p.actor.Bye(old.dv, "sso")
 					if b != nil {
-						data, err := p.actor.BeforeSend(conn.uid, b)
+						data, err := p.actor.BeforeSend(old.dv, b)
 						if err == nil {
 							if data != nil {
 								b = data
@@ -307,8 +304,8 @@ func (p *Hub) goOnline(conn *connection) {
 					}
 					old.close()
 					//after sso kick, only one connection keep active
-					p.actor.OnClose(conn.uid, 1)
-				}()
+					p.actor.OnClose(old.dv)
+				}(c)
 			}
 			l = []*connection{conn}
 		} else {
@@ -325,8 +322,8 @@ func (p *Hub) goOnline(conn *connection) {
 			}
 		}
 	}
-	p.cons[conn.uid] = l
-	go p.tryDeliver(conn.uid)
+	p.cons[conn.dv.Uid()] = l
+	go p.tryDeliver(conn.dv.Uid())
 }
 
 //tryDeliver try to deliver all messages, if uid is online
@@ -344,8 +341,8 @@ func (p *Hub) stateChange(conn *connection, online bool) {
 }
 
 //receive data from user
-func (p *Hub) receive(uid interface{}, b []byte) {
-	p.chUp <- &frame{uid: uid, data: b}
+func (p *Hub) receive(dv *device, b []byte) {
+	p.chUp <- &frame{dv: dv, data: b}
 }
 
 func connExclude(l []*connection, ex *connection) []*connection {

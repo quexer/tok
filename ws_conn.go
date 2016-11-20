@@ -69,12 +69,19 @@ func CreateWsHandler(hub *Hub, config *HubConfig, txt bool) (*Hub, http.Handler)
 	return hub, websocket.Handler(func(ws *websocket.Conn) {
 		adapter := &wsAdapter{conn: ws, txt: txt}
 		r := ws.Request()
-		uid, err := hub.actor.Auth(r)
+		dv := &device{}
+		for k := range r.Header {
+			dv.PutMeta(k, r.Header.Get(k))
+		}
+		dv.PutMeta("RemoteAddr", r.RemoteAddr)
+
+		uid, err := hub.actor.Auth(dv)
 		if err != nil {
 			adapter.Close()
 			return
 		}
+		dv.uid = uid
 		//		log.Println("new ws connection for", uid)
-		initConnection(uid, adapter, hub)
+		initConnection(dv, adapter, hub)
 	})
 }

@@ -11,7 +11,6 @@ import (
 	"io"
 	"log"
 	"net"
-	"net/http"
 	"strings"
 	"time"
 )
@@ -98,10 +97,10 @@ func (p *tcpAdapter) Close() {
 }
 
 //meta|||cookie|||device id
-func buildReq(b []byte) *http.Request {
+func buildReq(b []byte) *device {
 	s := string(b)
 	a := strings.SplitN(s, "|||", 3)
-	var cookie, meta, dv string
+	var cookie, meta, dvId string
 	switch len(a) {
 	case 1:
 		cookie = a[0]
@@ -111,10 +110,13 @@ func buildReq(b []byte) *http.Request {
 	case 3:
 		meta = a[0]
 		cookie = a[1]
-		dv = a[2]
+		dvId = a[2]
 	}
-	req := &http.Request{}
-	req.Header = http.Header{"Cookie": {cookie}, META_HEADER: {meta}, DV_HEADER: {dv}}
+
+	req := &device{}
+	req.PutMeta("Cookie", cookie)
+	req.PutMeta(META_HEADER, meta)
+	req.PutMeta(DV_HEADER, dvId)
 	return req
 }
 
@@ -151,9 +153,11 @@ func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
 			adapter.Close()
 			return
 		}
-		r := buildReq(b)
-		r.RemoteAddr = conn.RemoteAddr().String()
-		uid, err := hub.actor.Auth(r)
+		dv := buildReq(b)
+		dv.PutMeta("RemoteAddr", conn.RemoteAddr().String())
+		uid, err := hub.actor.Auth(dv)
+		dv.uid = uid
+
 		if err != nil {
 			adapter.Close()
 			return
@@ -165,7 +169,7 @@ func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
 			adapter.readTimeout = 0
 		}
 
-		initConnection(uid, adapter, hub)
+		initConnection(dv, adapter, hub)
 	}
 
 	go func() {

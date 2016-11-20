@@ -24,7 +24,7 @@ var (
 type connection struct {
 	sync.RWMutex
 	wLock   sync.Mutex
-	uid     interface{}
+	dv      *device
 	adapter conAdapter
 	hub     *Hub
 	closed  bool
@@ -62,7 +62,7 @@ func (conn *connection) readLoop(hub *Hub) {
 			hub.stateChange(conn, false)
 			return
 		}
-		hub.receive(conn.uid, b)
+		hub.receive(conn.dv, b)
 	}
 }
 
@@ -89,11 +89,9 @@ func (conn *connection) Write(b []byte) error {
 	return err
 }
 
-func initConnection(uid interface{}, adapter conAdapter, hub *Hub) {
-	//	log.Println("new conection ", uid)
-
+func initConnection(dv *device, adapter conAdapter, hub *Hub) {
 	conn := &connection{
-		uid:     uid,
+		dv:      dv,
 		adapter: adapter,
 		hub:     hub,
 	}
@@ -109,7 +107,7 @@ func initConnection(uid interface{}, adapter conAdapter, hub *Hub) {
 					ticker.Stop()
 					return
 				}
-				b, err := hub.actor.BeforeSend(uid, hub.actor.Ping())
+				b, err := hub.actor.BeforeSend(dv, hub.actor.Ping())
 				if err == nil {
 					if b == nil {
 						b = hub.actor.Ping()
