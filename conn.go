@@ -11,21 +11,21 @@ import (
 )
 
 var (
-	//READ_TIMEOUT read timeout duration
-	READ_TIMEOUT time.Duration
-	//WRITE_TIMEOUT write timeout duration
-	WRITE_TIMEOUT = time.Minute
-	//AUTH_TIMEOUT auth timeout duration
-	AUTH_TIMEOUT = time.Second * 5
-	//SERVER_PING_INTERVAL server ping interval duration
-	SERVER_PING_INTERVAL = time.Second * 30
+	//ReadTimeout read timeout duration
+	ReadTimeout time.Duration
+	//WriteTimeout write timeout duration
+	WriteTimeout = time.Minute
+	//AuthTimeout auth timeout duration
+	AuthTimeout = time.Second * 5
+	//ServerPingInterval server ping interval duration
+	ServerPingInterval = time.Second * 30
 )
 
 //abstract connection,
 type connection struct {
 	sync.RWMutex
 	wLock   sync.Mutex
-	dv      Device
+	dv      *Device
 	adapter conAdapter
 	hub     *Hub
 	closed  bool
@@ -46,7 +46,7 @@ type conAdapter interface {
 }
 
 func (conn *connection) uid() interface{} {
-	return conn.dv.Uid()
+	return conn.dv.UID()
 }
 
 func (conn *connection) isClosed() bool {
@@ -55,7 +55,7 @@ func (conn *connection) isClosed() bool {
 	return conn.closed
 }
 
-func (conn *connection) readLoop(hub *Hub) {
+func (conn *connection) readLoop() {
 	for {
 		if conn.isClosed() {
 			return
@@ -64,10 +64,10 @@ func (conn *connection) readLoop(hub *Hub) {
 		b, err := conn.adapter.Read()
 		if err != nil {
 			//			log.Println("read err", err)
-			hub.stateChange(conn, false)
+			conn.hub.stateChange(conn, false)
 			return
 		}
-		hub.receive(conn.dv, b)
+		conn.hub.receive(conn.dv, b)
 	}
 }
 
@@ -94,7 +94,7 @@ func (conn *connection) Write(b []byte) error {
 	return nil
 }
 
-func initConnection(dv Device, adapter conAdapter, hub *Hub) {
+func initConnection(dv *Device, adapter conAdapter, hub *Hub) {
 	conn := &connection{
 		dv:      dv,
 		adapter: adapter,
@@ -105,7 +105,7 @@ func initConnection(dv Device, adapter conAdapter, hub *Hub) {
 
 	//start server ping loop if necessary
 	if hub.actor.Ping() != nil {
-		ticker := time.NewTicker(SERVER_PING_INTERVAL)
+		ticker := time.NewTicker(ServerPingInterval)
 		go func() {
 			for range ticker.C {
 				if conn.isClosed() {
@@ -124,5 +124,5 @@ func initConnection(dv Device, adapter conAdapter, hub *Hub) {
 	}
 
 	//block on read
-	conn.readLoop(hub)
+	conn.readLoop()
 }

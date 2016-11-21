@@ -25,7 +25,7 @@ type fatFrame struct {
 }
 
 type frame struct {
-	dv   Device
+	dv   *Device
 	data []byte
 }
 
@@ -52,7 +52,7 @@ type Hub struct {
 }
 
 func createHub(actor Actor, q Queue, sso bool) *Hub {
-	if READ_TIMEOUT > 0 {
+	if ReadTimeout > 0 {
 		log.Println("[tok] read timeout is enabled, make sure it's greater than your client ping interval. otherwise you'll get read timeout err")
 	} else {
 		if actor.Ping() == nil {
@@ -105,7 +105,7 @@ func (p *Hub) run() {
 				p.actor.OnReceive(f.dv, b)
 			}()
 		case ff := <-p.chDown:
-			if l := p.cons[ff.frame.dv.Uid()]; len(l) > 0 {
+			if l := p.cons[ff.frame.dv.UID()]; len(l) > 0 {
 				//online
 				go p.down(ff, l)
 			} else {
@@ -169,7 +169,7 @@ func (p *Hub) popMsg(uid interface{}) {
 //If ttl > 0 and user is offline or online but send fail, message will be cached for ttl seconds.
 func (p *Hub) Send(to interface{}, b []byte, ttl uint32) error {
 
-	ff := &fatFrame{frame: &frame{dv: &device{uid: to}, data: b}, ttl: ttl, chErr: make(chan error)}
+	ff := &fatFrame{frame: &frame{dv: &Device{uid: to}, data: b}, ttl: ttl, chErr: make(chan error)}
 	p.chDown <- ff
 	err := <-ff.chErr
 	if ttl > 0 && err != nil {
@@ -204,7 +204,7 @@ func (p *Hub) cache(ff *fatFrame) {
 	}
 
 	f := ff.frame
-	if err := p.q.Enq(f.dv.Uid(), f.data, ff.ttl); err != nil {
+	if err := p.q.Enq(f.dv.UID(), f.data, ff.ttl); err != nil {
 		ff.chErr <- err
 	}
 }
@@ -336,7 +336,7 @@ func (p *Hub) stateChange(conn *connection, online bool) {
 }
 
 //receive data from user
-func (p *Hub) receive(dv Device, b []byte) {
+func (p *Hub) receive(dv *Device, b []byte) {
 	p.chUp <- &frame{dv: dv, data: b}
 }
 

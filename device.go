@@ -1,38 +1,37 @@
 package tok
 
-type Device interface {
-	Uid() interface{}
-	Id() string
-	GetMeta(string) string
-	PutMeta(string, string)
-}
-
 //CreateDevice uid is user id, id is uuid of this device(could be empty)
-func CreateDevice(uid interface{}, id string) Device {
-	return &device{uid: uid, id: id}
+func CreateDevice(uid interface{}, id string) *Device {
+	return &Device{uid: uid, id: id}
 }
 
-type device struct {
+//Device device struct
+type Device struct {
 	uid  interface{}
 	id   string
 	meta syncMap
 }
 
-func (p *device) Uid() interface{} {
+//UID return user id
+func (p *Device) UID() interface{} {
 	return p.uid
 }
-func (p *device) Id() string {
+
+//ID return device uuid(could be empty)
+func (p *Device) ID() string {
 	return p.id
 }
 
-func (p *device) GetMeta(key string) string {
+//GetMeta return device meta
+func (p *Device) GetMeta(key string) string {
 	if v, ok := p.meta.Get(key); ok {
 		return v.(string)
-	} else {
-		return ""
 	}
 
+	return ""
 }
-func (p *device) PutMeta(key string, val string) {
+
+//PutMeta set device meta
+func (p *Device) PutMeta(key string, val string) {
 	p.meta.Put(key, val)
 }

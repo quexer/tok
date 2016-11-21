@@ -17,8 +17,8 @@ type wsAdapter struct {
 }
 
 func (p *wsAdapter) Read() ([]byte, error) {
-	if READ_TIMEOUT > 0 {
-		if err := p.conn.SetReadDeadline(time.Now().Add(READ_TIMEOUT)); err != nil {
+	if ReadTimeout > 0 {
+		if err := p.conn.SetReadDeadline(time.Now().Add(ReadTimeout)); err != nil {
 			log.Println("[warning] setting ws read deadline: ", err)
 			return nil, err
 		}
@@ -37,7 +37,7 @@ func (p *wsAdapter) Read() ([]byte, error) {
 }
 
 func (p *wsAdapter) Write(b []byte) error {
-	if err := p.conn.SetWriteDeadline(time.Now().Add(WRITE_TIMEOUT)); err != nil {
+	if err := p.conn.SetWriteDeadline(time.Now().Add(WriteTimeout)); err != nil {
 		log.Println("[warning] setting ws write deadline: ", err)
 		return err
 	}
@@ -56,6 +56,7 @@ func (p *wsAdapter) Close() {
 //CreateWsHandler create web socket http handler with hub.
 //If config is not nil, a new hub will be created and replace old one
 //If txt is true web socket will serve text frame, otherwise serve binary frame
+//auth function is used for user authorization
 //Return http handler
 func CreateWsHandler(hub *Hub, config *HubConfig, txt bool, auth WsAuthFunc) (*Hub, http.Handler) {
 	if config != nil {
@@ -68,16 +69,15 @@ func CreateWsHandler(hub *Hub, config *HubConfig, txt bool, auth WsAuthFunc) (*H
 
 	return hub, websocket.Handler(func(ws *websocket.Conn) {
 		adapter := &wsAdapter{conn: ws, txt: txt}
-		dv, err := auth(ws.Request())
-		if err != nil {
+
+		if dv, err := auth(ws.Request()); err != nil {
 			adapter.Close()
-			return
+		} else {
+			initConnection(dv, adapter, hub)
 		}
-		//		log.Println("new ws connection for", uid)
-		initConnection(dv, adapter, hub)
 	})
 }
 
 //WsAuthFunc websocket auth function, return Device interface
 //parameter is the initial websocket request
-type WsAuthFunc func(*http.Request) (Device, error)
+type WsAuthFunc func(*http.Request) (*Device, error)

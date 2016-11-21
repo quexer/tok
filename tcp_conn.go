@@ -19,8 +19,8 @@ const (
 )
 
 var (
-	//TCP_MAX_PACK_LEN upper limit for single message
-	TCP_MAX_PACK_LEN uint32 = 4 * 1024 * 1024
+	//TCPMaxPackLen upper limit for single message
+	TCPMaxPackLen uint32 = 4 * 1024 * 1024
 )
 
 type tcpAdapter struct {
@@ -52,8 +52,8 @@ func (p *tcpAdapter) Read() ([]byte, error) {
 		return nil, err
 	}
 
-	if n > TCP_MAX_PACK_LEN {
-		return nil, fmt.Errorf("pack length %dM can't greater than %dM", n/1024/1024, TCP_MAX_PACK_LEN/1024/1024)
+	if n > TCPMaxPackLen {
+		return nil, fmt.Errorf("pack length %dM can't greater than %dM", n/1024/1024, TCPMaxPackLen/1024/1024)
 	}
 
 	if p.readTimeout > 0 {
@@ -74,7 +74,7 @@ func (p *tcpAdapter) Read() ([]byte, error) {
 
 func (p *tcpAdapter) Write(b []byte) error {
 	//set write deadline
-	if err := p.conn.SetWriteDeadline(time.Now().Add(WRITE_TIMEOUT)); err != nil {
+	if err := p.conn.SetWriteDeadline(time.Now().Add(WriteTimeout)); err != nil {
 		log.Println("[warning] setting write deadline fail: ", err)
 		return err
 	}
@@ -98,8 +98,9 @@ func (p *tcpAdapter) Close() {
 //Listen create Tcp listener with hub.
 //If config is not nil, a new hub will be created and replace the old one.
 //addr is the tcp address to be listened on.
+//auth function is used for user authorization
 //return error if listen failed.
-func Listen(hub *Hub, config *HubConfig, addr string, auth TcpAuthFunc) (*Hub, error) {
+func Listen(hub *Hub, config *HubConfig, addr string, auth TCPAuthFunc) (*Hub, error) {
 	if config != nil {
 		hub = createHub(config.Actor, config.Q, config.Sso)
 	}
@@ -115,13 +116,13 @@ func Listen(hub *Hub, config *HubConfig, addr string, auth TcpAuthFunc) (*Hub, e
 
 	initAuth := func(conn net.Conn) {
 		//		log.Println("raw tcp connection", conn.RemoteAddr())
-		if err := conn.SetReadDeadline(time.Now().Add(AUTH_TIMEOUT)); err != nil {
+		if err := conn.SetReadDeadline(time.Now().Add(AuthTimeout)); err != nil {
 			log.Println("set auth deadline err: ", err)
 			conn.Close()
 			return
 		}
 
-		adapter := &tcpAdapter{conn: conn, readTimeout: AUTH_TIMEOUT}
+		adapter := &tcpAdapter{conn: conn, readTimeout: AuthTimeout}
 		b, err := adapter.Read()
 		if err != nil {
 			//			log.Println("tcp auth err ", err)
@@ -135,8 +136,8 @@ func Listen(hub *Hub, config *HubConfig, addr string, auth TcpAuthFunc) (*Hub, e
 			return
 		}
 
-		if READ_TIMEOUT > 0 {
-			adapter.readTimeout = READ_TIMEOUT
+		if ReadTimeout > 0 {
+			adapter.readTimeout = ReadTimeout
 		} else {
 			adapter.readTimeout = 0
 		}
@@ -159,6 +160,6 @@ func Listen(hub *Hub, config *HubConfig, addr string, auth TcpAuthFunc) (*Hub, e
 	return hub, nil
 }
 
-//TcpAuthFunc tcp auth function
+//TCPAuthFunc tcp auth function
 //parameter is the first package content of connection. return Device interface
-type TcpAuthFunc func([]byte) (Device, error)
+type TCPAuthFunc func([]byte) (*Device, error)
