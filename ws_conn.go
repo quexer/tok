@@ -57,7 +57,7 @@ func (p *wsAdapter) Close() {
 //If config is not nil, a new hub will be created and replace old one
 //If txt is true web socket will serve text frame, otherwise serve binary frame
 //Return http handler
-func CreateWsHandler(hub *Hub, config *HubConfig, txt bool) (*Hub, http.Handler) {
+func CreateWsHandler(hub *Hub, config *HubConfig, txt bool, auth WsAuthFunc) (*Hub, http.Handler) {
 	if config != nil {
 		hub = createHub(config.Actor, config.Q, config.Sso)
 	}
@@ -68,20 +68,16 @@ func CreateWsHandler(hub *Hub, config *HubConfig, txt bool) (*Hub, http.Handler)
 
 	return hub, websocket.Handler(func(ws *websocket.Conn) {
 		adapter := &wsAdapter{conn: ws, txt: txt}
-		r := ws.Request()
-		dv := &device{}
-		for k := range r.Header {
-			dv.PutMeta(k, r.Header.Get(k))
-		}
-		dv.PutMeta("RemoteAddr", r.RemoteAddr)
-
-		uid, err := hub.actor.Auth(dv)
+		dv, err := auth(ws.Request())
 		if err != nil {
 			adapter.Close()
 			return
 		}
-		dv.uid = uid
 		//		log.Println("new ws connection for", uid)
 		initConnection(dv, adapter, hub)
 	})
 }
+
+//WsAuthFunc websocket auth function, return Device interface
+//parameter is the initial websocket request
+type WsAuthFunc func(*http.Request) (Device, error)

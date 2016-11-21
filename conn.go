@@ -5,7 +5,7 @@
 package tok
 
 import (
-	"fmt"
+	"errors"
 	"sync"
 	"time"
 )
@@ -25,7 +25,7 @@ var (
 type connection struct {
 	sync.RWMutex
 	wLock   sync.Mutex
-	dv      *device
+	dv      Device
 	adapter conAdapter
 	hub     *Hub
 	closed  bool
@@ -84,17 +84,17 @@ func (conn *connection) Write(b []byte) error {
 	defer conn.wLock.Unlock()
 
 	if conn.isClosed() {
-		return fmt.Errorf("Can't write to closed connection")
+		return errors.New("Can't write to closed connection")
 	}
 
-	err := conn.adapter.Write(b)
-	if err != nil {
+	if err := conn.adapter.Write(b); err != nil {
 		conn.hub.stateChange(conn, false)
+		return err
 	}
-	return err
+	return nil
 }
 
-func initConnection(dv *device, adapter conAdapter, hub *Hub) {
+func initConnection(dv Device, adapter conAdapter, hub *Hub) {
 	conn := &connection{
 		dv:      dv,
 		adapter: adapter,

@@ -25,7 +25,7 @@ type fatFrame struct {
 }
 
 type frame struct {
-	dv   *device
+	dv   Device
 	data []byte
 }
 
@@ -336,7 +336,7 @@ func (p *Hub) stateChange(conn *connection, online bool) {
 }
 
 //receive data from user
-func (p *Hub) receive(dv *device, b []byte) {
+func (p *Hub) receive(dv Device, b []byte) {
 	p.chUp <- &frame{dv: dv, data: b}
 }
 

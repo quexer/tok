@@ -2,9 +2,14 @@ package tok
 
 type Device interface {
 	Uid() interface{}
-	Id() interface{}
+	Id() string
 	GetMeta(string) string
 	PutMeta(string, string)
+}
+
+//CreateDevice uid is user id, id is uuid of this device(could be empty)
+func CreateDevice(uid interface{}, id string) Device {
+	return &device{uid: uid, id: id}
 }
 
 type device struct {
@@ -16,7 +21,7 @@ type device struct {
 func (p *device) Uid() interface{} {
 	return p.uid
 }
-func (p *device) Id() interface{} {
+func (p *device) Id() string {
 	return p.id
 }
 

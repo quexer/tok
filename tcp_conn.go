@@ -11,7 +11,6 @@ import (
 	"io"
 	"log"
 	"net"
-	"strings"
 	"time"
 )
 
@@ -96,35 +95,11 @@ func (p *tcpAdapter) Close() {
 	p.conn.Close()
 }
 
-//meta|||cookie|||device id
-func buildReq(b []byte) *device {
-	s := string(b)
-	a := strings.SplitN(s, "|||", 3)
-	var cookie, meta, dvId string
-	switch len(a) {
-	case 1:
-		cookie = a[0]
-	case 2:
-		meta = a[0]
-		cookie = a[1]
-	case 3:
-		meta = a[0]
-		cookie = a[1]
-		dvId = a[2]
-	}
-
-	req := &device{}
-	req.PutMeta("Cookie", cookie)
-	req.PutMeta(META_HEADER, meta)
-	req.PutMeta(DV_HEADER, dvId)
-	return req
-}
-
 //Listen create Tcp listener with hub.
 //If config is not nil, a new hub will be created and replace the old one.
 //addr is the tcp address to be listened on.
 //return error if listen failed.
-func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
+func Listen(hub *Hub, config *HubConfig, addr string, auth TcpAuthFunc) (*Hub, error) {
 	if config != nil {
 		hub = createHub(config.Actor, config.Q, config.Sso)
 	}
@@ -153,11 +128,8 @@ func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
 			adapter.Close()
 			return
 		}
-		dv := buildReq(b)
-		dv.PutMeta("RemoteAddr", conn.RemoteAddr().String())
-		uid, err := hub.actor.Auth(dv)
-		dv.uid = uid
 
+		dv, err := auth(b)
 		if err != nil {
 			adapter.Close()
 			return
@@ -186,3 +158,7 @@ func Listen(hub *Hub, config *HubConfig, addr string) (*Hub, error) {
 
 	return hub, nil
 }
+
+//TcpAuthFunc tcp auth function
+//parameter is the first package content of connection. return Device interface
+type TcpAuthFunc func([]byte) (Device, error)
