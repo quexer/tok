@@ -222,10 +222,6 @@ func (p *Hub) down(f *downFrame, conns []*connection) {
 			b = f.data
 		}
 
-		if con == nil {
-			log.Println("hub.down, conn is nil")
-			continue
-		}
 		if err := con.Write(b); err != nil {
 			f.chErr <- err
 			return
