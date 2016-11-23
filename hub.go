@@ -18,13 +18,14 @@ type checkFrame struct {
 	chBool chan bool //channel to return online status
 }
 
-type fatFrame struct {
-	frame *frame //frame to be sent
+type downFrame struct {
+	uid   interface{}
 	ttl   uint32
+	data  []byte
 	chErr chan error //channel to read send result from
 }
 
-type frame struct {
+type upFrame struct {
 	dv   *Device
 	data []byte
 }
@@ -42,8 +43,8 @@ type Hub struct {
 	actor         Actor
 	q             Queue
 	cons          map[interface{}][]*connection //connection list
-	chUp          chan *frame
-	chDown        chan *fatFrame
+	chUp          chan *upFrame
+	chDown        chan *downFrame
 	chConState    chan *conState
 	chReadSignal  chan interface{}
 	chKick        chan interface{}
@@ -65,8 +66,8 @@ func createHub(actor Actor, q Queue, sso bool) *Hub {
 		actor:         actor,
 		q:             q,
 		cons:          make(map[interface{}][]*connection),
-		chUp:          make(chan *frame),
-		chDown:        make(chan *fatFrame),
+		chUp:          make(chan *upFrame),
+		chDown:        make(chan *downFrame),
 		chConState:    make(chan *conState),
 		chReadSignal:  make(chan interface{}),
 		chKick:        make(chan interface{}),
@@ -105,10 +106,11 @@ func (p *Hub) run() {
 				p.actor.OnReceive(f.dv, b)
 			}()
 		case ff := <-p.chDown:
-			if l := p.cons[ff.frame.dv.UID()]; len(l) > 0 {
+			if l := p.cons[ff.uid]; len(l) > 0 {
 				//online
 				go p.down(ff, l)
 			} else {
+				//offline
 				if ff.ttl == 0 {
 					ff.chErr <- ErrOffline
 					close(ff.chErr)
@@ -169,7 +171,7 @@ func (p *Hub) popMsg(uid interface{}) {
 //If ttl > 0 and user is offline or online but send fail, message will be cached for ttl seconds.
 func (p *Hub) Send(to interface{}, b []byte, ttl uint32) error {
 
-	ff := &fatFrame{frame: &frame{dv: &Device{uid: to}, data: b}, ttl: ttl, chErr: make(chan error)}
+	ff := &downFrame{uid: to, data: b, ttl: ttl, chErr: make(chan error)}
 	p.chDown <- ff
 	err := <-ff.chErr
 	if ttl > 0 && err != nil {
@@ -195,7 +197,7 @@ func (p *Hub) Online() []interface{} {
 	return <-ch
 }
 
-func (p *Hub) cache(ff *fatFrame) {
+func (p *Hub) cache(ff *downFrame) {
 	defer close(ff.chErr)
 	expEnq.Add(1)
 	if p.q == nil {
@@ -203,38 +205,21 @@ func (p *Hub) cache(ff *fatFrame) {
 		return
 	}
 
-	f := ff.frame
-	if err := p.q.Enq(f.dv.UID(), f.data, ff.ttl); err != nil {
+	if err := p.q.Enq(ff.uid, ff.data, ff.ttl); err != nil {
 		ff.chErr <- err
 	}
 }
 
-func (p *Hub) down(ff *fatFrame, conns []*connection) {
-	defer func() {
-		if ff == nil {
-			log.Println("defer hub.down, ff is nil")
-			return
-		}
-		close(ff.chErr)
-	}()
+func (p *Hub) down(f *downFrame, conns []*connection) {
 	expDown.Add(1)
 
-	if ff == nil {
-		log.Println("hub.down, ff is nil")
-		return
-	}
-	if ff.frame == nil {
-		log.Println("hub.down, ff.frame is nil")
-		return
-	}
-
 	for _, con := range conns {
-		b, err := p.actor.BeforeSend(ff.frame.dv, ff.frame.data)
+		b, err := p.actor.BeforeSend(con.dv, f.data)
 		if err != nil {
 			return
 		}
 		if b == nil {
-			b = ff.frame.data
+			b = f.data
 		}
 
 		if con == nil {
@@ -242,10 +227,10 @@ func (p *Hub) down(ff *fatFrame, conns []*connection) {
 			continue
 		}
 		if err := con.Write(b); err != nil {
-			ff.chErr <- err
+			f.chErr <- err
 			return
 		}
-		go p.actor.OnSent(ff.frame.dv, ff.frame.data)
+		go p.actor.OnSent(con.dv, f.data)
 	}
 
 }
@@ -337,7 +322,7 @@ func (p *Hub) stateChange(conn *connection, online bool) {
 
 //receive data from user
 func (p *Hub) receive(dv *Device, b []byte) {
-	p.chUp <- &frame{dv: dv, data: b}
+	p.chUp <- &upFrame{dv: dv, data: b}
 }
 
 func connExclude(l []*connection, ex *connection) []*connection {
