@@ -8,6 +8,7 @@ import (
 	"errors"
 	"sync"
 	"time"
+	"log"
 )
 
 var (
@@ -117,7 +118,9 @@ func initConnection(dv *Device, adapter conAdapter, hub *Hub) {
 					if b == nil {
 						b = hub.actor.Ping()
 					}
-					conn.Write(b)
+					if err := conn.Write(b); err != nil{
+						log.Println("[tok] write ping error", err)
+					}
 				}
 			}
 		}()
