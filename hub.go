@@ -264,7 +264,7 @@ func (p *Hub) byeThenClose(conn *connection) {
 			if data != nil {
 				b = data
 			}
-			if err := conn.Write(b); err != nil{
+			if err := conn.Write(b); err != nil {
 				log.Println("[tok] write bye error", err)
 			}
 		}

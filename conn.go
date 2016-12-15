@@ -6,9 +6,9 @@ package tok
 
 import (
 	"errors"
+	"log"
 	"sync"
 	"time"
-	"log"
 )
 
 var (
@@ -118,7 +118,7 @@ func initConnection(dv *Device, adapter conAdapter, hub *Hub) {
 					if b == nil {
 						b = hub.actor.Ping()
 					}
-					if err := conn.Write(b); err != nil{
+					if err := conn.Write(b); err != nil {
 						log.Println("[tok] write ping error", err)
 					}
 				}
