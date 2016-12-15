@@ -211,6 +211,7 @@ func (p *Hub) cache(ff *downFrame) {
 }
 
 func (p *Hub) down(f *downFrame, conns []*connection) {
+	defer close(f.chErr)
 	expDown.Add(1)
 
 	for _, con := range conns {
