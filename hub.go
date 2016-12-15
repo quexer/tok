@@ -256,8 +256,8 @@ func (p *Hub) innerKick(uid interface{}) {
 	delete(p.cons, uid)
 }
 
-func (p *Hub) byeThenClose(conn *connection) {
-	b := p.actor.Bye(conn.dv, "sso")
+func (p *Hub) byeThenClose(kicker *Device, conn *connection) {
+	b := p.actor.Bye(kicker, "sso", conn.dv)
 	if b != nil {
 		data, err := p.actor.BeforeSend(conn.dv, b)
 		if err == nil {
@@ -291,7 +291,7 @@ func (p *Hub) goOnline(conn *connection) {
 	if p.sso {
 		for _, c := range l {
 			//notify before close connection
-			go p.byeThenClose(c)
+			go p.byeThenClose(conn.dv, c)
 		}
 		p.cons[conn.uid()] = []*connection{conn}
 		return

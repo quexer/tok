@@ -23,6 +23,6 @@ type Actor interface {
 	//is invoked after a connection has been closed
 	//active, count of active connections for this user
 	OnClose(dv *Device)
-	Ping() []byte                         //Build ping payload.  auto ping feature will be disabled if this method return nil
-	Bye(dv *Device, reason string) []byte //Build payload for different reason before connection is closed
+	Ping() []byte                                         //Build ping payload.  auto ping feature will be disabled if this method return nil
+	Bye(kicker *Device, reason string, dv *Device) []byte //Build payload for different reason before connection is closed
 }
