@@ -225,7 +225,7 @@ func (p *Hub) down(f *downFrame, conns []*connection) {
 
 		if err := con.Write(b); err != nil {
 			f.chErr <- err
-			return
+			continue
 		}
 		go p.actor.OnSent(con.dv, f.data)
 	}
