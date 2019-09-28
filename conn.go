@@ -37,13 +37,18 @@ type conState struct {
 	online bool
 }
 
+func (conn *connection) ShareConn(other *connection) bool {
+	return conn.adapter.ShareConn(other.adapter)
+}
+
 //conAdapter is adapter for real connection.
 //For now, net.Conn and websocket.Conn are supported.
 //This interface is useful for building test application
 type conAdapter interface {
-	Read() ([]byte, error) //Read payload data from real connection. Unpack from basic data frame
-	Write([]byte) error    //Write payload data to real connection. Pack into basic data frame
-	Close()                //Close the real connection
+	Read() ([]byte, error)             //Read payload data from real connection. Unpack from basic data frame
+	Write([]byte) error                //Write payload data to real connection. Pack into basic data frame
+	Close()                            //Close the real connection
+	ShareConn(adapter conAdapter) bool //if tow adapters share one net connection (tcp/ws)
 }
 
 func (conn *connection) uid() interface{} {

@@ -291,6 +291,9 @@ func (p *Hub) goOnline(conn *connection) {
 
 	if p.sso {
 		for _, c := range l {
+			if conn.ShareConn(c) {
+				continue //never close share connection
+			}
 			//notify before close connection
 			go p.byeThenClose(conn.dv, c)
 		}

@@ -53,6 +53,14 @@ func (p *wsAdapter) Close() {
 	p.conn.Close()
 }
 
+func (p *wsAdapter) ShareConn(adapter conAdapter) bool {
+	wsAdp, ok := adapter.(*wsAdapter)
+	if !ok {
+		return false
+	}
+	return p.conn == wsAdp.conn
+}
+
 //CreateWsHandler create web socket http handler with hub.
 //If config is not nil, a new hub will be created and replace old one
 //If txt is true web socket will serve text frame, otherwise serve binary frame

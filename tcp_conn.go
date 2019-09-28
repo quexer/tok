@@ -95,6 +95,14 @@ func (p *tcpAdapter) Close() {
 	p.conn.Close()
 }
 
+func (p *tcpAdapter) ShareConn(adapter conAdapter) bool {
+	tcpAdp, ok := adapter.(*tcpAdapter)
+	if !ok {
+		return false
+	}
+	return p.conn == tcpAdp.conn
+}
+
 //Listen create Tcp listener with hub.
 //If config is not nil, a new hub will be created and replace the old one.
 //addr is the tcp address to be listened on.
