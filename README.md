@@ -6,12 +6,12 @@ tok
 installation
 ------
 
-    go get gopkg.in/quexer/tok.v3
+    go get github.com/quexer/tok
 
 usage
 -----
 
-    import "gopkg.in/quexer/tok.v3"
+    import "github/quexer/tok"
 
 
 need cluster support? see https://github.com/quexer/cluster
