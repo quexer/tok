@@ -19,7 +19,7 @@ const (
 )
 
 var (
-	//TCPMaxPackLen upper limit for single message
+	// TCPMaxPackLen upper limit for single message
 	TCPMaxPackLen uint32 = 4 * 1024 * 1024
 )
 
@@ -40,7 +40,7 @@ func (p *tcpAdapter) Read() ([]byte, error) {
 		return nil, err
 	}
 
-	//read header
+	// read header
 	b := make([]byte, tcpHeaderLen)
 	if _, err := io.ReadFull(p.conn, b); err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func (p *tcpAdapter) Read() ([]byte, error) {
 }
 
 func (p *tcpAdapter) Write(b []byte) error {
-	//set write deadline
+	// set write deadline
 	if err := p.conn.SetWriteDeadline(time.Now().Add(WriteTimeout)); err != nil {
 		log.Println("[warning] setting write deadline fail: ", err)
 		return err
@@ -103,11 +103,11 @@ func (p *tcpAdapter) ShareConn(adapter conAdapter) bool {
 	return p.conn == tcpAdp.conn
 }
 
-//Listen create Tcp listener with hub.
-//If config is not nil, a new hub will be created and replace the old one.
-//addr is the tcp address to be listened on.
-//auth function is used for user authorization
-//return error if listen failed.
+// Listen create Tcp listener with hub.
+// If config is not nil, a new hub will be created and replace the old one.
+// addr is the tcp address to be listened on.
+// auth function is used for user authorization
+// return error if listen failed.
 func Listen(hub *Hub, config *HubConfig, addr string, auth TCPAuthFunc) (*Hub, error) {
 	if config != nil {
 		hub = createHub(config.Actor, config.Q, config.Sso)
@@ -140,6 +140,7 @@ func Listen(hub *Hub, config *HubConfig, addr string, auth TCPAuthFunc) (*Hub, e
 
 		dv, err := auth(b)
 		if err != nil {
+			log.Printf("tcp auth err: %+v", err)
 			adapter.Close()
 			return
 		}
@@ -168,6 +169,6 @@ func Listen(hub *Hub, config *HubConfig, addr string, auth TCPAuthFunc) (*Hub, e
 	return hub, nil
 }
 
-//TCPAuthFunc tcp auth function
-//parameter is the first package content of connection. return Device interface
+// TCPAuthFunc tcp auth function
+// parameter is the first package content of connection. return Device interface
 type TCPAuthFunc func([]byte) (*Device, error)

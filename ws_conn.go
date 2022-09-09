@@ -5,10 +5,11 @@
 package tok
 
 import (
-	"golang.org/x/net/websocket"
 	"log"
 	"net/http"
 	"time"
+
+	"golang.org/x/net/websocket"
 )
 
 type wsAdapter struct {
@@ -61,11 +62,11 @@ func (p *wsAdapter) ShareConn(adapter conAdapter) bool {
 	return p.conn == wsAdp.conn
 }
 
-//CreateWsHandler create web socket http handler with hub.
-//If config is not nil, a new hub will be created and replace old one
-//If txt is true web socket will serve text frame, otherwise serve binary frame
-//auth function is used for user authorization
-//Return http handler
+// CreateWsHandler create web socket http handler with hub.
+// If config is not nil, a new hub will be created and replace old one
+// If txt is true web socket will serve text frame, otherwise serve binary frame
+// auth function is used for user authorization
+// Return http handler
 func CreateWsHandler(hub *Hub, config *HubConfig, txt bool, auth WsAuthFunc) (*Hub, http.Handler) {
 	if config != nil {
 		hub = createHub(config.Actor, config.Q, config.Sso)
@@ -79,6 +80,7 @@ func CreateWsHandler(hub *Hub, config *HubConfig, txt bool, auth WsAuthFunc) (*H
 		adapter := &wsAdapter{conn: ws, txt: txt}
 
 		if dv, err := auth(ws.Request()); err != nil {
+			log.Printf("websocket auth err: %+v", err)
 			adapter.Close()
 		} else {
 			initConnection(dv, adapter, hub)
@@ -86,6 +88,6 @@ func CreateWsHandler(hub *Hub, config *HubConfig, txt bool, auth WsAuthFunc) (*H
 	})
 }
 
-//WsAuthFunc websocket auth function, return Device interface
-//parameter is the initial websocket request
+// WsAuthFunc websocket auth function, return Device interface
+// parameter is the initial websocket request
 type WsAuthFunc func(*http.Request) (*Device, error)
