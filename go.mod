@@ -1,5 +1,5 @@
 module github.com/quexer/tok
 
-go 1.13
+go 1.21
 
-require golang.org/x/net v0.7.0
+require golang.org/x/net v0.17.0
