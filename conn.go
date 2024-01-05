@@ -12,17 +12,17 @@ import (
 )
 
 var (
-	//ReadTimeout read timeout duration
+	// ReadTimeout read timeout duration
 	ReadTimeout time.Duration
-	//WriteTimeout write timeout duration
+	// WriteTimeout write timeout duration
 	WriteTimeout = time.Minute
-	//AuthTimeout auth timeout duration
+	// AuthTimeout auth timeout duration
 	AuthTimeout = time.Second * 5
-	//ServerPingInterval server ping interval duration
+	// ServerPingInterval server ping interval duration
 	ServerPingInterval = time.Second * 30
 )
 
-//abstract connection,
+// abstract connection,
 type connection struct {
 	sync.RWMutex
 	wLock   sync.Mutex
@@ -41,14 +41,14 @@ func (conn *connection) ShareConn(other *connection) bool {
 	return conn.adapter.ShareConn(other.adapter)
 }
 
-//conAdapter is adapter for real connection.
-//For now, net.Conn and websocket.Conn are supported.
-//This interface is useful for building test application
+// conAdapter is adapter for real connection.
+// For now, net.Conn and websocket.Conn are supported.
+// This interface is useful for building test application
 type conAdapter interface {
-	Read() ([]byte, error)             //Read payload data from real connection. Unpack from basic data frame
-	Write([]byte) error                //Write payload data to real connection. Pack into basic data frame
-	Close()                            //Close the real connection
-	ShareConn(adapter conAdapter) bool //if tow adapters share one net connection (tcp/ws)
+	Read() ([]byte, error)             // Read payload data from real connection. Unpack from basic data frame
+	Write([]byte) error                // Write payload data to real connection. Pack into basic data frame
+	Close()                            // Close the real connection
+	ShareConn(adapter conAdapter) bool // if two adapters share one net connection (tcp/ws)
 }
 
 func (conn *connection) uid() interface{} {
@@ -109,7 +109,7 @@ func initConnection(dv *Device, adapter conAdapter, hub *Hub) {
 
 	hub.stateChange(conn, true)
 
-	//start server ping loop if necessary
+	// start server ping loop if necessary
 	if hub.actor.Ping() != nil {
 		ticker := time.NewTicker(ServerPingInterval)
 		go func() {
@@ -131,6 +131,6 @@ func initConnection(dv *Device, adapter conAdapter, hub *Hub) {
 		}()
 	}
 
-	//block on read
+	// block on read
 	conn.readLoop()
 }
