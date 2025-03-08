@@ -6,7 +6,6 @@ package tok
 
 import (
 	"errors"
-	"log"
 	"sync"
 	"time"
 )
@@ -90,7 +89,7 @@ func (conn *connection) Write(b []byte) error {
 	defer conn.wLock.Unlock()
 
 	if conn.isClosed() {
-		return errors.New("Can't write to closed connection")
+		return errors.New("can't write to closed connection")
 	}
 
 	if err := conn.adapter.Write(b); err != nil {
@@ -98,39 +97,4 @@ func (conn *connection) Write(b []byte) error {
 		return err
 	}
 	return nil
-}
-
-func initConnection(dv *Device, adapter conAdapter, hub *Hub) {
-	conn := &connection{
-		dv:      dv,
-		adapter: adapter,
-		hub:     hub,
-	}
-
-	hub.stateChange(conn, true)
-
-	// start server ping loop if necessary
-	if hub.actor.Ping() != nil {
-		ticker := time.NewTicker(ServerPingInterval)
-		go func() {
-			for range ticker.C {
-				if conn.isClosed() {
-					ticker.Stop()
-					return
-				}
-				b, err := hub.actor.BeforeSend(dv, hub.actor.Ping())
-				if err == nil {
-					if b == nil {
-						b = hub.actor.Ping()
-					}
-					if err := conn.Write(b); err != nil {
-						log.Println("[tok] write ping error", err)
-					}
-				}
-			}
-		}()
-	}
-
-	// block on read
-	conn.readLoop()
 }

@@ -83,7 +83,7 @@ func CreateWsHandler(hub *Hub, config *HubConfig, txt bool, auth WsAuthFunc) (*H
 			log.Printf("websocket auth err: %+v", err)
 			adapter.Close()
 		} else {
-			initConnection(dv, adapter, hub)
+			hub.initConnection(dv, adapter)
 		}
 	})
 }
