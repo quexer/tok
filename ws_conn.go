@@ -50,8 +50,8 @@ func (p *wsAdapter) Write(b []byte) error {
 	return websocket.Message.Send(p.conn, b)
 }
 
-func (p *wsAdapter) Close() {
-	p.conn.Close()
+func (p *wsAdapter) Close() error {
+	return p.conn.Close()
 }
 
 func (p *wsAdapter) ShareConn(adapter conAdapter) bool {

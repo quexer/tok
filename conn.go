@@ -24,18 +24,20 @@ var (
 // abstract connection,
 type connection struct {
 	sync.RWMutex
-	wLock   sync.Mutex
-	dv      *Device
-	adapter conAdapter
-	hub     *Hub
-	closed  bool
+	wLock   sync.Mutex // write lock
+	dv      *Device    // device of this connection
+	adapter conAdapter // real connection adapter
+	hub     *Hub       // hub of this connection
+	closed  bool       // connection closed flag
 }
 
+// conState is the state of connection
 type conState struct {
 	con    *connection
 	online bool
 }
 
+// ShareConn check if two connections share the same underline connection
 func (conn *connection) ShareConn(other *connection) bool {
 	return conn.adapter.ShareConn(other.adapter)
 }
@@ -46,7 +48,7 @@ func (conn *connection) ShareConn(other *connection) bool {
 type conAdapter interface {
 	Read() ([]byte, error)             // Read payload data from real connection. Unpack from basic data frame
 	Write([]byte) error                // Write payload data to real connection. Pack into basic data frame
-	Close()                            // Close the real connection
+	Close() error                      // Close the real connection
 	ShareConn(adapter conAdapter) bool // if two adapters share one net connection (tcp/ws)
 }
 
@@ -81,7 +83,7 @@ func (conn *connection) close() {
 	defer conn.Unlock()
 
 	conn.closed = true
-	conn.adapter.Close()
+	_ = conn.adapter.Close()
 }
 
 func (conn *connection) Write(b []byte) error {

@@ -91,8 +91,8 @@ func (p *tcpAdapter) Write(b []byte) error {
 	return err
 }
 
-func (p *tcpAdapter) Close() {
-	p.conn.Close()
+func (p *tcpAdapter) Close() error {
+	return p.conn.Close()
 }
 
 func (p *tcpAdapter) ShareConn(adapter conAdapter) bool {
