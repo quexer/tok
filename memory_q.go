@@ -2,7 +2,6 @@ package tok
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"time"
 )
@@ -47,7 +46,7 @@ func (mq *MemoryQueue) Enq(ctx context.Context, uid interface{}, data []byte, tt
 func (mq *MemoryQueue) Deq(ctx context.Context, uid interface{}) ([]byte, error) {
 	qu, ok := mq.queues.Load(uid)
 	if !ok {
-		return nil, errors.New("queue not found")
+		return nil, nil
 	}
 
 	queue := qu.(*userQueue)
@@ -59,7 +58,7 @@ func (mq *MemoryQueue) Deq(ctx context.Context, uid interface{}) ([]byte, error)
 
 	if len(queue.items) == 0 {
 		mq.queues.Delete(uid)
-		return nil, errors.New("queue is empty")
+		return nil, nil
 	}
 
 	// 取出第一个有效元素

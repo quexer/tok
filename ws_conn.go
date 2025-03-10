@@ -62,30 +62,50 @@ func (p *wsAdapter) ShareConn(adapter conAdapter) bool {
 	return p.conn == wsAdp.conn
 }
 
-// CreateWsHandler create web socket http handler with hub.
-// If config is not nil, a new hub will be created and replace old one
-// If txt is true web socket will serve text frame, otherwise serve binary frame
-// auth function is used for user authorization
-// Return http handler
-func CreateWsHandler(hub *Hub, config *HubConfig, txt bool, auth WsAuthFunc) (*Hub, http.Handler) {
-	if config != nil {
-		hub = createHub(config.Actor, config.Q, config.Sso)
-	}
+type WsHandler struct {
+	hub       *Hub
+	hubConfig *HubConfig // If config is not nil, a new hub will be created and replace old one
+	txt       bool       // If txt is true web socket will serve text frame, otherwise serve binary frame
+	auth      WsAuthFunc // auth function is used for user authorization
+}
 
-	if hub == nil {
-		log.Fatal("hub is needed")
-	}
+func (p *WsHandler) Handler() websocket.Handler {
+	return websocket.Handler(func(ws *websocket.Conn) {
+		adapter := &wsAdapter{conn: ws, txt: p.txt}
 
-	return hub, websocket.Handler(func(ws *websocket.Conn) {
-		adapter := &wsAdapter{conn: ws, txt: txt}
-
-		if dv, err := auth(ws.Request()); err != nil {
+		if dv, err := p.auth(ws.Request()); err != nil {
 			log.Printf("websocket auth err: %+v", err)
 			adapter.Close()
 		} else {
-			initConnection(dv, adapter, hub)
+			initConnection(dv, adapter, p.hub)
 		}
 	})
+}
+
+// CreateWsHandler create web socket http handler with hub.
+// auth function is used for user authorization
+// Return http handler
+func CreateWsHandler(auth WsAuthFunc, opts ...WsHandlerOption) (*Hub, http.Handler) {
+	wsh := &WsHandler{
+		hub:       nil,
+		hubConfig: nil,
+		txt:       true,
+		auth:      auth,
+	}
+
+	for _, opt := range opts {
+		opt(wsh)
+	}
+
+	if wsh.hubConfig != nil {
+		wsh.hub = createHub(wsh.hubConfig.Actor, wsh.hubConfig.Q, wsh.hubConfig.Sso)
+	}
+
+	if wsh.hub == nil {
+		log.Fatal("hub is needed")
+	}
+
+	return wsh.hub, wsh.Handler()
 }
 
 // WsAuthFunc websocket auth function, return Device interface

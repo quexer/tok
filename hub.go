@@ -35,7 +35,26 @@ type upFrame struct {
 type HubConfig struct {
 	Actor Actor // Actor implement dispatch logic
 	Q     Queue // Message Queue, if nil, message to offline user will not be cached
-	Sso   bool  // If it's true, new connection  with same uid will kick off old ones
+	Sso   bool  // Default true, if it's true, new connection  with same uid will kick off old ones
+}
+
+// NewHubConfig create new HubConfig
+func NewHubConfig(actor Actor, opts ...HubConfigOption) *HubConfig {
+	hc := &HubConfig{
+		Actor: actor,
+		Q:     NewMemoryQueue(),
+		Sso:   true,
+	}
+
+	for _, opt := range opts {
+		opt(hc)
+	}
+
+	if hc.Actor == nil {
+		log.Fatal("actor is needed")
+	}
+
+	return hc
 }
 
 // Hub core of tok, dispatch message between connections
