@@ -77,7 +77,7 @@ func (p *WsHandler) Handler() websocket.Handler {
 			log.Printf("websocket auth err: %+v", err)
 			adapter.Close()
 		} else {
-			initConnection(dv, adapter, p.hub)
+			p.hub.initConnection(dv, adapter)
 		}
 	})
 }
