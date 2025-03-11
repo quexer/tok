@@ -4,6 +4,7 @@ import (
 	"context"
 	"expvar"
 	"log"
+	"time"
 )
 
 var (
@@ -334,7 +335,7 @@ func (p *Hub) tryDeliver(uid interface{}) {
 	p.chReadSignal <- uid
 }
 
-// Kick kick all connections of uid
+// Kick all connections of uid
 func (p *Hub) Kick(uid interface{}) {
 	p.chKick <- uid
 }
@@ -346,6 +347,43 @@ func (p *Hub) stateChange(conn *connection, online bool) {
 // receive data from user
 func (p *Hub) receive(dv *Device, b []byte) {
 	p.chUp <- &upFrame{dv: dv, data: b}
+}
+
+// initConnection init connection with device and adapter
+func (p *Hub) initConnection(dv *Device, adapter conAdapter) {
+	conn := &connection{
+		dv:      dv,
+		adapter: adapter,
+		hub:     p,
+	}
+
+	// change conn state to online
+	p.stateChange(conn, true)
+
+	// start server ping loop if necessary
+	if p.actor.Ping() != nil {
+		ticker := time.NewTicker(ServerPingInterval)
+		go func() {
+			for range ticker.C {
+				if conn.isClosed() {
+					ticker.Stop()
+					return
+				}
+				b, err := p.actor.BeforeSend(dv, p.actor.Ping())
+				if err == nil {
+					if b == nil {
+						b = p.actor.Ping()
+					}
+					if err := conn.Write(b); err != nil {
+						log.Println("[tok] write ping error", err)
+					}
+				}
+			}
+		}()
+	}
+
+	// block on read
+	conn.readLoop()
 }
 
 func connExclude(l []*connection, ex *connection) []*connection {

@@ -91,8 +91,8 @@ func (p *tcpAdapter) Write(b []byte) error {
 	return err
 }
 
-func (p *tcpAdapter) Close() {
-	p.conn.Close()
+func (p *tcpAdapter) Close() error {
+	return p.conn.Close()
 }
 
 func (p *tcpAdapter) ShareConn(adapter conAdapter) bool {
@@ -151,7 +151,7 @@ func Listen(hub *Hub, config *HubConfig, addr string, auth TCPAuthFunc) (*Hub, e
 			adapter.readTimeout = 0
 		}
 
-		initConnection(dv, adapter, hub)
+		hub.initConnection(dv, adapter)
 	}
 
 	go func() {
