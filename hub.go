@@ -16,20 +16,20 @@ var (
 )
 
 type checkFrame struct {
-	uid    interface{}
-	chBool chan bool // channel to return online status
+	uid    interface{} // user id
+	chBool chan bool   // channel to return online status
 }
 
 type downFrame struct {
-	uid   interface{}
-	ttl   uint32
-	data  []byte
-	chErr chan error // channel to read send result from
+	uid   interface{} // user id
+	ttl   uint32      // ttl in seconds
+	data  []byte      // data to send
+	chErr chan error  // channel to read send result from
 }
 
 type upFrame struct {
-	dv   *Device
-	data []byte
+	dv   *Device // user device
+	data []byte  // data
 }
 
 // HubConfig config struct for creating new Hub
@@ -43,8 +43,8 @@ type HubConfig struct {
 func NewHubConfig(actor Actor, opts ...HubConfigOption) *HubConfig {
 	hc := &HubConfig{
 		Actor: actor,
-		Q:     NewMemoryQueue(),
-		Sso:   true,
+		Q:     NewMemoryQueue(), // default
+		Sso:   true,             // default
 	}
 
 	for _, opt := range opts {

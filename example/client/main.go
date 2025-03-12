@@ -11,14 +11,14 @@ import (
 
 const (
 	origin = "http://localhost/"
-	url    = "ws://localhost:8090/ws" // WebSocket 服务器地址
+	url    = "ws://localhost:8090/ws" // WebSocket server address
 )
 
 func main() {
 	// 创建 WebSocket 配置
 	config, err := websocket.NewConfig(url, origin)
 	if err != nil {
-		log.Fatal("配置创建失败:", err)
+		log.Fatal("fail to create websocket config", err)
 	}
 
 	config.Header.Set("Authorization", "u1")
@@ -26,12 +26,13 @@ func main() {
 	// 连接到 WebSocket 服务器
 	conn, err := websocket.DialConfig(config)
 	if err != nil {
-		log.Fatal("连接失败:", err)
+		log.Fatal("connection fail", err)
 	}
-	defer conn.Close() // 确保最后关闭连接
+	defer conn.Close() // close connection when function ends
 
-	fmt.Println("已连接到 WebSocket 服务器")
+	fmt.Println("connected to websocket server")
 
+	// send random message to server every 5 seconds
 	ticker := time.NewTicker(5 * time.Second)
 	go func() {
 		for {
@@ -48,11 +49,11 @@ func main() {
 		var message string
 		err := websocket.Message.Receive(conn, &message)
 		if err != nil {
-			log.Println("接收消息失败:", err)
-			break // 退出循环
+			log.Println("fail to receive", err)
+			break // quit loop
 		}
 
-		fmt.Printf("收到消息: %s\n", message)
+		fmt.Printf("message received %s\n", message)
 
 		if message == "ping" {
 			if err := websocket.Message.Send(conn, fmt.Sprintf("pong %d\n", rand.IntN(10))); err != nil {
@@ -62,5 +63,5 @@ func main() {
 
 	}
 
-	fmt.Println("客户端已断开连接")
+	fmt.Println("client disconnected")
 }

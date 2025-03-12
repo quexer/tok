@@ -18,9 +18,12 @@ func main() {
 	tok.ServerPingInterval = 2 * time.Second
 	actor := &simpleActor{}
 	hc := tok.NewHubConfig(actor)
-	hub, hdl = tok.CreateWsHandler(func(r *http.Request) (*tok.Device, error) {
+
+	authFunc := func(r *http.Request) (*tok.Device, error) {
 		return tok.CreateDevice(fmt.Sprintf("%p", r), ""), nil
-	}, tok.WithWsHandlerHubConfig(hc))
+	}
+
+	hub, hdl = tok.CreateWsHandler(authFunc, tok.WithWsHandlerHubConfig(hc))
 
 	http.Handle("/ws", hdl)
 
