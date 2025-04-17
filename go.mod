@@ -5,7 +5,7 @@ go 1.24
 require (
 	github.com/onsi/ginkgo/v2 v2.23.0
 	github.com/onsi/gomega v1.36.2
-	golang.org/x/net v0.37.0
+	golang.org/x/net v0.38.0
 )
 
 require (
