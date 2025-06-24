@@ -62,42 +62,37 @@ func NewHubConfig(actor Actor, opts ...HubConfigOption) *HubConfig {
 
 // Hub core of tok, dispatch message between connections
 type Hub struct {
-	sso                bool
-	actor              Actor
-	q                  Queue
-	cons               map[interface{}][]*connection // connection list
-	chUp               chan *upFrame
-	chDown             chan *downFrame
-	chConState         chan *conState
-	chReadSignal       chan interface{}
-	chKick             chan interface{}
-	chQueryOnline      chan chan []interface{}
-	chCheck            chan *checkFrame
-	serverPingInterval time.Duration // Server ping interval
+	q             Queue
+	cons          map[interface{}][]*connection // connection list
+	chUp          chan *upFrame
+	chDown        chan *downFrame
+	chConState    chan *conState
+	chReadSignal  chan interface{}
+	chKick        chan interface{}
+	chQueryOnline chan chan []interface{}
+	chCheck       chan *checkFrame
+	config        *HubConfig // config for hub
 }
 
-func createHub(actor Actor, q Queue, sso bool, serverPingInterval time.Duration) *Hub {
+func createHub(config *HubConfig) *Hub {
 	if ReadTimeout > 0 {
 		log.Println("[tok] read timeout is enabled, make sure it's greater than your client ping interval. otherwise you'll get read timeout err")
 	} else {
-		if actor.Ping() == nil {
+		if config.Actor.Ping() == nil {
 			log.Fatalln("[tok] both read timeout and server ping have been disabled, server socket resource leak might happen")
 		}
 	}
 
 	hub := &Hub{
-		sso:                sso,
-		actor:              actor,
-		q:                  q,
-		cons:               make(map[interface{}][]*connection),
-		chUp:               make(chan *upFrame),
-		chDown:             make(chan *downFrame),
-		chConState:         make(chan *conState),
-		chReadSignal:       make(chan interface{}),
-		chKick:             make(chan interface{}),
-		chQueryOnline:      make(chan chan []interface{}),
-		chCheck:            make(chan *checkFrame),
-		serverPingInterval: serverPingInterval,
+		cons:          make(map[interface{}][]*connection),
+		chUp:          make(chan *upFrame),
+		chDown:        make(chan *downFrame),
+		chConState:    make(chan *conState),
+		chReadSignal:  make(chan interface{}),
+		chKick:        make(chan interface{}),
+		chQueryOnline: make(chan chan []interface{}),
+		chCheck:       make(chan *checkFrame),
+		config:        config,
 	}
 	go hub.run()
 	return hub
@@ -121,14 +116,14 @@ func (p *Hub) run() {
 			//			log.Println("up data")
 			expUp.Add(1)
 			go func() {
-				b, err := p.actor.BeforeReceive(f.dv, f.data)
+				b, err := p.config.Actor.BeforeReceive(f.dv, f.data)
 				if err != nil {
 					return
 				}
 				if b == nil {
 					b = f.data
 				}
-				p.actor.OnReceive(f.dv, b)
+				p.config.Actor.OnReceive(f.dv, b)
 			}()
 		case ff := <-p.chDown:
 			if l := p.cons[ff.uid]; len(l) > 0 {
@@ -166,12 +161,12 @@ func (p *Hub) run() {
 }
 
 func (p *Hub) popMsg(uid interface{}) {
-	if p.q == nil {
+	if p.config.Q == nil {
 		return
 	}
 	ctx := context.TODO()
 	for {
-		b, err := p.q.Deq(ctx, uid)
+		b, err := p.config.Q.Deq(ctx, uid)
 		if err != nil {
 			log.Println("deq error", err)
 			return
@@ -182,7 +177,7 @@ func (p *Hub) popMsg(uid interface{}) {
 		}
 		expDeq.Add(1)
 		if err := p.Send(uid, b, 0); err != nil {
-			if err := p.q.Enq(ctx, uid, b); err != nil {
+			if err := p.config.Q.Enq(ctx, uid, b); err != nil {
 				log.Println("re-cache err", err, uid)
 			}
 			return
@@ -226,12 +221,12 @@ func (p *Hub) cache(ff *downFrame) {
 	defer close(ff.chErr)
 	ctx := context.TODO()
 	expEnq.Add(1)
-	if p.q == nil {
+	if p.config.Q == nil {
 		ff.chErr <- ErrQueueRequired
 		return
 	}
 
-	if err := p.q.Enq(ctx, ff.uid, ff.data, ff.ttl); err != nil {
+	if err := p.config.Q.Enq(ctx, ff.uid, ff.data, ff.ttl); err != nil {
 		ff.chErr <- err
 	}
 }
@@ -241,7 +236,7 @@ func (p *Hub) down(f *downFrame, conns []*connection) {
 	expDown.Add(1)
 
 	for _, con := range conns {
-		b, err := p.actor.BeforeSend(con.dv, f.data)
+		b, err := p.config.Actor.BeforeSend(con.dv, f.data)
 		if err != nil {
 			return
 		}
@@ -253,7 +248,7 @@ func (p *Hub) down(f *downFrame, conns []*connection) {
 			f.chErr <- err
 			continue
 		}
-		go p.actor.OnSent(con.dv, f.data)
+		go p.config.Actor.OnSent(con.dv, f.data)
 	}
 
 }
@@ -284,9 +279,9 @@ func (p *Hub) innerKick(uid interface{}) {
 }
 
 func (p *Hub) byeThenClose(kicker *Device, conn *connection) {
-	b := p.actor.Bye(kicker, "sso", conn.dv)
+	b := p.config.Actor.Bye(kicker, "sso", conn.dv)
 	if b != nil {
-		data, err := p.actor.BeforeSend(conn.dv, b)
+		data, err := p.config.Actor.BeforeSend(conn.dv, b)
 		if err == nil {
 			if data != nil {
 				b = data
@@ -301,7 +296,7 @@ func (p *Hub) byeThenClose(kicker *Device, conn *connection) {
 
 func (p *Hub) close(conn *connection) {
 	conn.close()
-	p.actor.OnClose(conn.dv)
+	p.config.Actor.OnClose(conn.dv)
 }
 
 func (p *Hub) goOnline(conn *connection) {
@@ -315,7 +310,7 @@ func (p *Hub) goOnline(conn *connection) {
 		return
 	}
 
-	if p.sso {
+	if p.config.Sso {
 		for _, c := range l {
 			if conn.ShareConn(c) {
 				continue // never close share connection
@@ -365,18 +360,18 @@ func (p *Hub) initConnection(dv *Device, adapter conAdapter) {
 	p.stateChange(conn, true)
 
 	// start server ping loop if necessary
-	if p.actor.Ping() != nil {
-		ticker := time.NewTicker(p.serverPingInterval)
+	if p.config.Actor.Ping() != nil {
+		ticker := time.NewTicker(p.config.ServerPingInterval)
 		go func() {
 			for range ticker.C {
 				if conn.isClosed() {
 					ticker.Stop()
 					return
 				}
-				b, err := p.actor.BeforeSend(dv, p.actor.Ping())
+				b, err := p.config.Actor.BeforeSend(dv, p.config.Actor.Ping())
 				if err == nil {
 					if b == nil {
-						b = p.actor.Ping()
+						b = p.config.Actor.Ping()
 					}
 					if err := conn.Write(b); err != nil {
 						log.Println("[tok] write ping error", err)
