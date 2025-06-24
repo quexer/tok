@@ -13,8 +13,9 @@ import (
 )
 
 type wsAdapter struct {
-	conn *websocket.Conn
-	txt  bool
+	conn         *websocket.Conn
+	txt          bool
+	writeTimeout time.Duration
 }
 
 func (p *wsAdapter) Read() ([]byte, error) {
@@ -38,7 +39,7 @@ func (p *wsAdapter) Read() ([]byte, error) {
 }
 
 func (p *wsAdapter) Write(b []byte) error {
-	if err := p.conn.SetWriteDeadline(time.Now().Add(WriteTimeout)); err != nil {
+	if err := p.conn.SetWriteDeadline(time.Now().Add(p.writeTimeout)); err != nil {
 		log.Println("[warning] setting ws write deadline: ", err)
 		return err
 	}
@@ -71,11 +72,15 @@ type WsHandler struct {
 
 func (p *WsHandler) Handler() websocket.Handler {
 	return websocket.Handler(func(ws *websocket.Conn) {
-		adapter := &wsAdapter{conn: ws, txt: p.txt}
+		adapter := &wsAdapter{
+			conn:         ws,
+			txt:          p.txt,
+			writeTimeout: p.hubConfig.writeTimeout,
+		}
 
 		if dv, err := p.auth(ws.Request()); err != nil {
 			log.Printf("websocket auth err: %+v", err)
-			adapter.Close()
+			_ = adapter.Close()
 		} else {
 			p.hub.initConnection(dv, adapter)
 		}

@@ -24,8 +24,9 @@ var (
 )
 
 type tcpAdapter struct {
-	conn        net.Conn
-	readTimeout time.Duration
+	conn         net.Conn
+	readTimeout  time.Duration
+	writeTimeout time.Duration
 }
 
 func (p *tcpAdapter) Read() ([]byte, error) {
@@ -74,7 +75,7 @@ func (p *tcpAdapter) Read() ([]byte, error) {
 
 func (p *tcpAdapter) Write(b []byte) error {
 	// set write deadline
-	if err := p.conn.SetWriteDeadline(time.Now().Add(WriteTimeout)); err != nil {
+	if err := p.conn.SetWriteDeadline(time.Now().Add(p.writeTimeout)); err != nil {
 		log.Println("[warning] setting write deadline fail: ", err)
 		return err
 	}
@@ -130,7 +131,12 @@ func Listen(hub *Hub, config *HubConfig, addr string, auth TCPAuthFunc) (*Hub, e
 			return
 		}
 
-		adapter := &tcpAdapter{conn: conn, readTimeout: config.authTimeout}
+		// set auth timeout at auth stage
+		adapter := &tcpAdapter{
+			conn:         conn,
+			readTimeout:  config.authTimeout,
+			writeTimeout: config.writeTimeout,
+		}
 		b, err := adapter.Read()
 		if err != nil {
 			//			log.Println("tcp auth err ", err)

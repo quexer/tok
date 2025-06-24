@@ -12,6 +12,7 @@ type HubConfig struct {
 	sso                bool          // Default true, if it's true, new connection  with same uid will kick off old ones
 	serverPingInterval time.Duration // Server ping interval, default 30 seconds
 	authTimeout        time.Duration // Auth timeout duration, default 5s
+	writeTimeout       time.Duration // Write timeout duration, default 1m
 }
 
 // NewHubConfig create new HubConfig
@@ -26,6 +27,7 @@ func NewHubConfig(actor Actor, opts ...HubConfigOption) *HubConfig {
 		sso:                true,             // default
 		serverPingInterval: 30 * time.Second, // default
 		authTimeout:        5 * time.Second,  // default
+		writeTimeout:       time.Minute,      // default
 	}
 
 	for _, opt := range opts {
@@ -62,5 +64,12 @@ func WithHubConfigServerPingInterval(interval time.Duration) HubConfigOption {
 func WithHubConfigAuthTimeout(timeout time.Duration) HubConfigOption {
 	return func(hc *HubConfig) {
 		hc.authTimeout = timeout
+	}
+}
+
+// WithHubConfigWriteTimeout set write timeout for hub config, default is 1 minute.
+func WithHubConfigWriteTimeout(timeout time.Duration) HubConfigOption {
+	return func(hc *HubConfig) {
+		hc.writeTimeout = timeout
 	}
 }

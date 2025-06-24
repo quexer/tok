@@ -13,8 +13,6 @@ import (
 var (
 	// ReadTimeout read timeout duration
 	ReadTimeout time.Duration
-	// WriteTimeout write timeout duration
-	WriteTimeout = time.Minute
 )
 
 // abstract connection,
