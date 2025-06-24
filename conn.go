@@ -15,8 +15,6 @@ var (
 	ReadTimeout time.Duration
 	// WriteTimeout write timeout duration
 	WriteTimeout = time.Minute
-	// AuthTimeout auth timeout duration
-	AuthTimeout = time.Second * 5
 )
 
 // abstract connection,

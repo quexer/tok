@@ -124,24 +124,24 @@ func Listen(hub *Hub, config *HubConfig, addr string, auth TCPAuthFunc) (*Hub, e
 
 	initAuth := func(conn net.Conn) {
 		//		log.Println("raw tcp connection", conn.RemoteAddr())
-		if err := conn.SetReadDeadline(time.Now().Add(AuthTimeout)); err != nil {
+		if err := conn.SetReadDeadline(time.Now().Add(config.authTimeout)); err != nil {
 			log.Println("set auth deadline err: ", err)
-			conn.Close()
+			_ = conn.Close()
 			return
 		}
 
-		adapter := &tcpAdapter{conn: conn, readTimeout: AuthTimeout}
+		adapter := &tcpAdapter{conn: conn, readTimeout: config.authTimeout}
 		b, err := adapter.Read()
 		if err != nil {
 			//			log.Println("tcp auth err ", err)
-			adapter.Close()
+			_ = adapter.Close()
 			return
 		}
 
 		dv, err := auth(b)
 		if err != nil {
 			log.Printf("tcp auth err: %+v", err)
-			adapter.Close()
+			_ = adapter.Close()
 			return
 		}
 

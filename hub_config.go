@@ -11,6 +11,7 @@ type HubConfig struct {
 	q                  Queue         // Message Queue, default is memory-based queue. if nil, message to offline user will not be cached
 	sso                bool          // Default true, if it's true, new connection  with same uid will kick off old ones
 	serverPingInterval time.Duration // Server ping interval, default 30 seconds
+	authTimeout        time.Duration // Auth timeout duration, default 5s
 }
 
 // NewHubConfig create new HubConfig
@@ -24,6 +25,7 @@ func NewHubConfig(actor Actor, opts ...HubConfigOption) *HubConfig {
 		q:                  NewMemoryQueue(), // default
 		sso:                true,             // default
 		serverPingInterval: 30 * time.Second, // default
+		authTimeout:        5 * time.Second,  // default
 	}
 
 	for _, opt := range opts {
@@ -53,5 +55,12 @@ func WithHubConfigSso(sso bool) HubConfigOption {
 func WithHubConfigServerPingInterval(interval time.Duration) HubConfigOption {
 	return func(hc *HubConfig) {
 		hc.serverPingInterval = interval
+	}
+}
+
+// WithHubConfigAuthTimeout set auth timeout for hub config, default is 5 seconds.
+func WithHubConfigAuthTimeout(timeout time.Duration) HubConfigOption {
+	return func(hc *HubConfig) {
+		hc.authTimeout = timeout
 	}
 }
