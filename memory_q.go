@@ -53,7 +53,7 @@ func (mq *MemoryQueue) Deq(ctx context.Context, uid interface{}) ([]byte, error)
 	queue.mu.Lock()
 	defer queue.mu.Unlock()
 
-	// 清理过期元素
+	// Clean up expired items
 	mq.clearExpireItem(queue)
 
 	if len(queue.items) == 0 {
@@ -61,7 +61,7 @@ func (mq *MemoryQueue) Deq(ctx context.Context, uid interface{}) ([]byte, error)
 		return nil, nil
 	}
 
-	// 取出第一个有效元素
+	// Get the first valid element
 	data := queue.items[0].data
 	if len(queue.items) == 1 {
 		mq.queues.Delete(uid)
@@ -73,7 +73,7 @@ func (mq *MemoryQueue) Deq(ctx context.Context, uid interface{}) ([]byte, error)
 }
 
 func (mq *MemoryQueue) clearExpireItem(queue *userQueue) {
-	// 清理所有过期元素
+	// Clean up all expired items
 	now := time.Now()
 	validItems := queue.items[:0]
 	for _, item := range queue.items {
@@ -94,10 +94,10 @@ func (mq *MemoryQueue) Len(ctx context.Context, uid interface{}) (int, error) {
 	queue.mu.Lock()
 	defer queue.mu.Unlock()
 
-	// 清理过期元素
+	// Clean up expired items
 	mq.clearExpireItem(queue)
 
-	// 自动删除空队列
+	// Delete empty queue
 	if len(queue.items) == 0 {
 		mq.queues.Delete(uid)
 	}
