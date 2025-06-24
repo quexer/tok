@@ -15,7 +15,7 @@ const (
 )
 
 func main() {
-	// 创建 WebSocket 配置
+	// Create WebSocket config
 	config, err := websocket.NewConfig(url, origin)
 	if err != nil {
 		log.Fatal("fail to create websocket config", err)
@@ -23,12 +23,12 @@ func main() {
 
 	config.Header.Set("Authorization", "u1")
 
-	// 连接到 WebSocket 服务器
+	// Connect to WebSocket server
 	conn, err := websocket.DialConfig(config)
 	if err != nil {
 		log.Fatal("connection fail", err)
 	}
-	defer conn.Close() // close connection when function ends
+	defer conn.Close() // Close connection when function ends
 
 	fmt.Println("connected to websocket server")
 
@@ -44,7 +44,7 @@ func main() {
 
 	}()
 
-	// 持续接收消息
+	// receive messages from server
 	for {
 		var message string
 		err := websocket.Message.Receive(conn, &message)
