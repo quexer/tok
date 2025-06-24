@@ -50,7 +50,7 @@ func createHub(config *HubConfig) *Hub {
 	if ReadTimeout > 0 {
 		log.Println("[tok] read timeout is enabled, make sure it's greater than your client ping interval. otherwise you'll get read timeout err")
 	} else {
-		if config.Actor.Ping() == nil {
+		if config.actor.Ping() == nil {
 			log.Fatalln("[tok] both read timeout and server ping have been disabled, server socket resource leak might happen")
 		}
 	}
@@ -88,14 +88,14 @@ func (p *Hub) run() {
 			//			log.Println("up data")
 			expUp.Add(1)
 			go func() {
-				b, err := p.config.Actor.BeforeReceive(f.dv, f.data)
+				b, err := p.config.actor.BeforeReceive(f.dv, f.data)
 				if err != nil {
 					return
 				}
 				if b == nil {
 					b = f.data
 				}
-				p.config.Actor.OnReceive(f.dv, b)
+				p.config.actor.OnReceive(f.dv, b)
 			}()
 		case ff := <-p.chDown:
 			if l := p.cons[ff.uid]; len(l) > 0 {
@@ -133,12 +133,12 @@ func (p *Hub) run() {
 }
 
 func (p *Hub) popMsg(uid interface{}) {
-	if p.config.Q == nil {
+	if p.config.q == nil {
 		return
 	}
 	ctx := context.TODO()
 	for {
-		b, err := p.config.Q.Deq(ctx, uid)
+		b, err := p.config.q.Deq(ctx, uid)
 		if err != nil {
 			log.Println("deq error", err)
 			return
@@ -149,7 +149,7 @@ func (p *Hub) popMsg(uid interface{}) {
 		}
 		expDeq.Add(1)
 		if err := p.Send(uid, b, 0); err != nil {
-			if err := p.config.Q.Enq(ctx, uid, b); err != nil {
+			if err := p.config.q.Enq(ctx, uid, b); err != nil {
 				log.Println("re-cache err", err, uid)
 			}
 			return
@@ -193,12 +193,12 @@ func (p *Hub) cache(ff *downFrame) {
 	defer close(ff.chErr)
 	ctx := context.TODO()
 	expEnq.Add(1)
-	if p.config.Q == nil {
+	if p.config.q == nil {
 		ff.chErr <- ErrQueueRequired
 		return
 	}
 
-	if err := p.config.Q.Enq(ctx, ff.uid, ff.data, ff.ttl); err != nil {
+	if err := p.config.q.Enq(ctx, ff.uid, ff.data, ff.ttl); err != nil {
 		ff.chErr <- err
 	}
 }
@@ -208,7 +208,7 @@ func (p *Hub) down(f *downFrame, conns []*connection) {
 	expDown.Add(1)
 
 	for _, con := range conns {
-		b, err := p.config.Actor.BeforeSend(con.dv, f.data)
+		b, err := p.config.actor.BeforeSend(con.dv, f.data)
 		if err != nil {
 			return
 		}
@@ -220,7 +220,7 @@ func (p *Hub) down(f *downFrame, conns []*connection) {
 			f.chErr <- err
 			continue
 		}
-		go p.config.Actor.OnSent(con.dv, f.data)
+		go p.config.actor.OnSent(con.dv, f.data)
 	}
 
 }
@@ -251,9 +251,9 @@ func (p *Hub) innerKick(uid interface{}) {
 }
 
 func (p *Hub) byeThenClose(kicker *Device, conn *connection) {
-	b := p.config.Actor.Bye(kicker, "sso", conn.dv)
+	b := p.config.actor.Bye(kicker, "sso", conn.dv)
 	if b != nil {
-		data, err := p.config.Actor.BeforeSend(conn.dv, b)
+		data, err := p.config.actor.BeforeSend(conn.dv, b)
 		if err == nil {
 			if data != nil {
 				b = data
@@ -268,7 +268,7 @@ func (p *Hub) byeThenClose(kicker *Device, conn *connection) {
 
 func (p *Hub) close(conn *connection) {
 	conn.close()
-	p.config.Actor.OnClose(conn.dv)
+	p.config.actor.OnClose(conn.dv)
 }
 
 func (p *Hub) goOnline(conn *connection) {
@@ -282,7 +282,7 @@ func (p *Hub) goOnline(conn *connection) {
 		return
 	}
 
-	if p.config.Sso {
+	if p.config.sso {
 		for _, c := range l {
 			if conn.ShareConn(c) {
 				continue // never close share connection
@@ -332,18 +332,18 @@ func (p *Hub) initConnection(dv *Device, adapter conAdapter) {
 	p.stateChange(conn, true)
 
 	// start server ping loop if necessary
-	if p.config.Actor.Ping() != nil {
-		ticker := time.NewTicker(p.config.ServerPingInterval)
+	if p.config.actor.Ping() != nil {
+		ticker := time.NewTicker(p.config.serverPingInterval)
 		go func() {
 			for range ticker.C {
 				if conn.isClosed() {
 					ticker.Stop()
 					return
 				}
-				b, err := p.config.Actor.BeforeSend(dv, p.config.Actor.Ping())
+				b, err := p.config.actor.BeforeSend(dv, p.config.actor.Ping())
 				if err == nil {
 					if b == nil {
-						b = p.config.Actor.Ping()
+						b = p.config.actor.Ping()
 					}
 					if err := conn.Write(b); err != nil {
 						log.Println("[tok] write ping error", err)
