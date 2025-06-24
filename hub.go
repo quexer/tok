@@ -47,7 +47,7 @@ type Hub struct {
 }
 
 func createHub(config *HubConfig) *Hub {
-	if ReadTimeout > 0 {
+	if config.readTimeout > 0 {
 		log.Println("[tok] read timeout is enabled, make sure it's greater than your client ping interval. otherwise you'll get read timeout err")
 	} else {
 		if config.actor.Ping() == nil {

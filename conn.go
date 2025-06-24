@@ -7,12 +7,6 @@ package tok
 import (
 	"errors"
 	"sync"
-	"time"
-)
-
-var (
-	// ReadTimeout read timeout duration
-	ReadTimeout time.Duration
 )
 
 // abstract connection,

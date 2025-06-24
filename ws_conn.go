@@ -16,11 +16,12 @@ type wsAdapter struct {
 	conn         *websocket.Conn
 	txt          bool
 	writeTimeout time.Duration
+	readTimeout  time.Duration
 }
 
 func (p *wsAdapter) Read() ([]byte, error) {
-	if ReadTimeout > 0 {
-		if err := p.conn.SetReadDeadline(time.Now().Add(ReadTimeout)); err != nil {
+	if p.readTimeout > 0 {
+		if err := p.conn.SetReadDeadline(time.Now().Add(p.readTimeout)); err != nil {
 			log.Println("[warning] setting ws read deadline: ", err)
 			return nil, err
 		}

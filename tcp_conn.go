@@ -151,8 +151,8 @@ func Listen(hub *Hub, config *HubConfig, addr string, auth TCPAuthFunc) (*Hub, e
 			return
 		}
 
-		if ReadTimeout > 0 {
-			adapter.readTimeout = ReadTimeout
+		if config.readTimeout > 0 {
+			adapter.readTimeout = config.readTimeout
 		} else {
 			adapter.readTimeout = 0
 		}

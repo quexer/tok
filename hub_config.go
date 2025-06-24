@@ -13,6 +13,7 @@ type HubConfig struct {
 	serverPingInterval time.Duration // Server ping interval, default 30 seconds
 	authTimeout        time.Duration // Auth timeout duration, default 5s
 	writeTimeout       time.Duration // Write timeout duration, default 1m
+	readTimeout        time.Duration // Read timeout duration, default 0s, means no read timeout
 }
 
 // NewHubConfig create new HubConfig
@@ -28,6 +29,7 @@ func NewHubConfig(actor Actor, opts ...HubConfigOption) *HubConfig {
 		serverPingInterval: 30 * time.Second, // default
 		authTimeout:        5 * time.Second,  // default
 		writeTimeout:       time.Minute,      // default
+		readTimeout:        0,
 	}
 
 	for _, opt := range opts {
@@ -71,5 +73,12 @@ func WithHubConfigAuthTimeout(timeout time.Duration) HubConfigOption {
 func WithHubConfigWriteTimeout(timeout time.Duration) HubConfigOption {
 	return func(hc *HubConfig) {
 		hc.writeTimeout = timeout
+	}
+}
+
+// WithHubConfigReadTimeout set read timeout for hub config, default is 0 seconds, means no read timeout.
+func WithHubConfigReadTimeout(timeout time.Duration) HubConfigOption {
+	return func(hc *HubConfig) {
+		hc.readTimeout = timeout
 	}
 }
