@@ -17,8 +17,6 @@ var (
 	WriteTimeout = time.Minute
 	// AuthTimeout auth timeout duration
 	AuthTimeout = time.Second * 5
-	// ServerPingInterval server ping interval duration
-	ServerPingInterval = time.Second * 30
 )
 
 // abstract connection,

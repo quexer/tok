@@ -98,7 +98,7 @@ func CreateWsHandler(auth WsAuthFunc, opts ...WsHandlerOption) (*Hub, http.Handl
 	}
 
 	if wsh.hubConfig != nil {
-		wsh.hub = createHub(wsh.hubConfig.Actor, wsh.hubConfig.Q, wsh.hubConfig.Sso)
+		wsh.hub = createHub(wsh.hubConfig.Actor, wsh.hubConfig.Q, wsh.hubConfig.Sso, wsh.hubConfig.ServerPingInterval)
 	}
 
 	if wsh.hub == nil {

@@ -15,9 +15,9 @@ var (
 
 func main() {
 	var hdl http.Handler
-	tok.ServerPingInterval = 2 * time.Second
-	actor := &simpleActor{}
-	hc := tok.NewHubConfig(actor)
+	hc := tok.NewHubConfig(&simpleActor{},
+		tok.WithHubConfigServerPingInterval(2*time.Second),
+	)
 
 	authFunc := func(r *http.Request) (*tok.Device, error) {
 		return tok.CreateDevice(fmt.Sprintf("%p", r), ""), nil

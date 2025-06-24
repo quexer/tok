@@ -34,17 +34,19 @@ type upFrame struct {
 
 // HubConfig config struct for creating new Hub
 type HubConfig struct {
-	Actor Actor // Actor implement dispatch logic
-	Q     Queue // Message Queue, if nil, message to offline user will not be cached
-	Sso   bool  // Default true, if it's true, new connection  with same uid will kick off old ones
+	Actor              Actor         // Actor implement dispatch logic
+	Q                  Queue         // Message Queue, if nil, message to offline user will not be cached
+	Sso                bool          // Default true, if it's true, new connection  with same uid will kick off old ones
+	ServerPingInterval time.Duration // Server ping interval, default 30 seconds
 }
 
 // NewHubConfig create new HubConfig
 func NewHubConfig(actor Actor, opts ...HubConfigOption) *HubConfig {
 	hc := &HubConfig{
-		Actor: actor,
-		Q:     NewMemoryQueue(), // default
-		Sso:   true,             // default
+		Actor:              actor,
+		Q:                  NewMemoryQueue(), // default
+		Sso:                true,             // default
+		ServerPingInterval: 30 * time.Second, // default
 	}
 
 	for _, opt := range opts {
@@ -60,20 +62,21 @@ func NewHubConfig(actor Actor, opts ...HubConfigOption) *HubConfig {
 
 // Hub core of tok, dispatch message between connections
 type Hub struct {
-	sso           bool
-	actor         Actor
-	q             Queue
-	cons          map[interface{}][]*connection // connection list
-	chUp          chan *upFrame
-	chDown        chan *downFrame
-	chConState    chan *conState
-	chReadSignal  chan interface{}
-	chKick        chan interface{}
-	chQueryOnline chan chan []interface{}
-	chCheck       chan *checkFrame
+	sso                bool
+	actor              Actor
+	q                  Queue
+	cons               map[interface{}][]*connection // connection list
+	chUp               chan *upFrame
+	chDown             chan *downFrame
+	chConState         chan *conState
+	chReadSignal       chan interface{}
+	chKick             chan interface{}
+	chQueryOnline      chan chan []interface{}
+	chCheck            chan *checkFrame
+	serverPingInterval time.Duration // Server ping interval
 }
 
-func createHub(actor Actor, q Queue, sso bool) *Hub {
+func createHub(actor Actor, q Queue, sso bool, serverPingInterval time.Duration) *Hub {
 	if ReadTimeout > 0 {
 		log.Println("[tok] read timeout is enabled, make sure it's greater than your client ping interval. otherwise you'll get read timeout err")
 	} else {
@@ -83,17 +86,18 @@ func createHub(actor Actor, q Queue, sso bool) *Hub {
 	}
 
 	hub := &Hub{
-		sso:           sso,
-		actor:         actor,
-		q:             q,
-		cons:          make(map[interface{}][]*connection),
-		chUp:          make(chan *upFrame),
-		chDown:        make(chan *downFrame),
-		chConState:    make(chan *conState),
-		chReadSignal:  make(chan interface{}),
-		chKick:        make(chan interface{}),
-		chQueryOnline: make(chan chan []interface{}),
-		chCheck:       make(chan *checkFrame),
+		sso:                sso,
+		actor:              actor,
+		q:                  q,
+		cons:               make(map[interface{}][]*connection),
+		chUp:               make(chan *upFrame),
+		chDown:             make(chan *downFrame),
+		chConState:         make(chan *conState),
+		chReadSignal:       make(chan interface{}),
+		chKick:             make(chan interface{}),
+		chQueryOnline:      make(chan chan []interface{}),
+		chCheck:            make(chan *checkFrame),
+		serverPingInterval: serverPingInterval,
 	}
 	go hub.run()
 	return hub
@@ -362,7 +366,7 @@ func (p *Hub) initConnection(dv *Device, adapter conAdapter) {
 
 	// start server ping loop if necessary
 	if p.actor.Ping() != nil {
-		ticker := time.NewTicker(ServerPingInterval)
+		ticker := time.NewTicker(p.serverPingInterval)
 		go func() {
 			for range ticker.C {
 				if conn.isClosed() {

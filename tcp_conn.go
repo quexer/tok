@@ -110,7 +110,7 @@ func (p *tcpAdapter) ShareConn(adapter conAdapter) bool {
 // return error if listen failed.
 func Listen(hub *Hub, config *HubConfig, addr string, auth TCPAuthFunc) (*Hub, error) {
 	if config != nil {
-		hub = createHub(config.Actor, config.Q, config.Sso)
+		hub = createHub(config.Actor, config.Q, config.Sso, config.ServerPingInterval)
 	}
 
 	if hub == nil {
