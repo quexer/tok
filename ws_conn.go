@@ -5,7 +5,9 @@
 package tok
 
 import (
+	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -22,8 +24,7 @@ type wsAdapter struct {
 func (p *wsAdapter) Read() ([]byte, error) {
 	if p.readTimeout > 0 {
 		if err := p.conn.SetReadDeadline(time.Now().Add(p.readTimeout)); err != nil {
-			log.Println("[warning] setting ws read deadline: ", err)
-			return nil, err
+			return nil, fmt.Errorf("setting ws read deadline err: %w", err)
 		}
 	}
 
@@ -41,8 +42,7 @@ func (p *wsAdapter) Read() ([]byte, error) {
 
 func (p *wsAdapter) Write(b []byte) error {
 	if err := p.conn.SetWriteDeadline(time.Now().Add(p.writeTimeout)); err != nil {
-		log.Println("[warning] setting ws write deadline: ", err)
-		return err
+		return fmt.Errorf("setting ws write deadline failed: %w", err)
 	}
 
 	if p.txt {
@@ -80,7 +80,7 @@ func (p *WsHandler) Handler() websocket.Handler {
 		}
 
 		if dv, err := p.auth(ws.Request()); err != nil {
-			log.Printf("websocket auth err: %+v", err)
+			slog.Warn("websocket auth err", "err", err)
 			_ = adapter.Close()
 		} else {
 			p.hub.initConnection(dv, adapter)

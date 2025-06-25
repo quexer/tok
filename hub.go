@@ -4,6 +4,7 @@ import (
 	"context"
 	"expvar"
 	"log"
+	"log/slog"
 	"time"
 )
 
@@ -48,7 +49,7 @@ type Hub struct {
 
 func createHub(config *HubConfig) *Hub {
 	if config.readTimeout > 0 {
-		log.Println("[tok] read timeout is enabled, make sure it's greater than your client ping interval. otherwise you'll get read timeout err")
+		slog.Info("[tok] read timeout is enabled, make sure it's greater than your client ping interval. otherwise you'll get read timeout err")
 	} else {
 		if config.actor.Ping() == nil {
 			log.Fatalln("[tok] both read timeout and server ping have been disabled, server socket resource leak might happen")
@@ -75,7 +76,7 @@ func (p *Hub) run() {
 
 		select {
 		case state := <-p.chConState:
-			//			log.Printf("connection state change: %v, %v \n", state.online, &state.con)
+			slog.Debug("connection state change", "online", state.online, "con", &state.con)
 
 			if state.online {
 				p.goOnline(state.con)
@@ -85,7 +86,7 @@ func (p *Hub) run() {
 			count := int64(len(p.cons))
 			expOnline.Set(count)
 		case f := <-p.chUp:
-			//			log.Println("up data")
+			slog.Debug("up data")
 			expUp.Add(1)
 			go func() {
 				b, err := p.config.actor.BeforeReceive(f.dv, f.data)
@@ -140,7 +141,7 @@ func (p *Hub) popMsg(uid interface{}) {
 	for {
 		b, err := p.config.q.Deq(ctx, uid)
 		if err != nil {
-			log.Println("deq error", err)
+			slog.Warn("deq failed", "err", err)
 			return
 		}
 		if len(b) == 0 {
@@ -150,7 +151,7 @@ func (p *Hub) popMsg(uid interface{}) {
 		expDeq.Add(1)
 		if err := p.Send(uid, b, 0); err != nil {
 			if err := p.config.q.Enq(ctx, uid, b); err != nil {
-				log.Println("re-cache err", err, uid)
+				slog.Warn("re-cache failed", "err", err, "uid", uid)
 			}
 			return
 		}
@@ -259,7 +260,7 @@ func (p *Hub) byeThenClose(kicker *Device, conn *connection) {
 				b = data
 			}
 			if err := conn.Write(b); err != nil {
-				log.Println("[tok] write bye error", err)
+				slog.Warn("[tok] write bye failed", "err", err)
 			}
 		}
 	}
@@ -346,7 +347,7 @@ func (p *Hub) initConnection(dv *Device, adapter conAdapter) {
 						b = p.config.actor.Ping()
 					}
 					if err := conn.Write(b); err != nil {
-						log.Println("[tok] write ping error", err)
+						slog.Warn("[tok] write ping failed", "err", err)
 					}
 				}
 			}

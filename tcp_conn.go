@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net"
 	"time"
 )
@@ -37,8 +38,7 @@ func (p *tcpAdapter) Read() ([]byte, error) {
 		deadline = time.Time{}
 	}
 	if err := p.conn.SetReadDeadline(deadline); err != nil {
-		log.Println("[warning] setting read deadline: ", err)
-		return nil, err
+		return nil, fmt.Errorf("setting read deadline error: %w", err)
 	}
 
 	// read header
@@ -63,8 +63,7 @@ func (p *tcpAdapter) Read() ([]byte, error) {
 		deadline = time.Time{}
 	}
 	if err := p.conn.SetReadDeadline(deadline); err != nil {
-		log.Println("[warning] setting read deadline: ", err)
-		return nil, err
+		return nil, fmt.Errorf("setting read deadline err: %w", err)
 	}
 
 	b = make([]byte, n)
@@ -76,8 +75,7 @@ func (p *tcpAdapter) Read() ([]byte, error) {
 func (p *tcpAdapter) Write(b []byte) error {
 	// set write deadline
 	if err := p.conn.SetWriteDeadline(time.Now().Add(p.writeTimeout)); err != nil {
-		log.Println("[warning] setting write deadline fail: ", err)
-		return err
+		return fmt.Errorf("setting write deadline err: %w", err)
 	}
 
 	n := uint32(len(b))
@@ -124,9 +122,9 @@ func Listen(hub *Hub, config *HubConfig, addr string, auth TCPAuthFunc) (*Hub, e
 	}
 
 	initAuth := func(conn net.Conn) {
-		//		log.Println("raw tcp connection", conn.RemoteAddr())
+		slog.Debug("raw tcp connection", "addr", conn.RemoteAddr())
 		if err := conn.SetReadDeadline(time.Now().Add(config.authTimeout)); err != nil {
-			log.Println("set auth deadline err: ", err)
+			slog.Warn("set auth deadline err", "err", err)
 			_ = conn.Close()
 			return
 		}
@@ -139,14 +137,14 @@ func Listen(hub *Hub, config *HubConfig, addr string, auth TCPAuthFunc) (*Hub, e
 		}
 		b, err := adapter.Read()
 		if err != nil {
-			//			log.Println("tcp auth err ", err)
+			slog.Warn("tcp auth, read err", "err", err)
 			_ = adapter.Close()
 			return
 		}
 
 		dv, err := auth(b)
 		if err != nil {
-			log.Printf("tcp auth err: %+v", err)
+			slog.Warn("tcp auth, auth err", "err", err)
 			_ = adapter.Close()
 			return
 		}
@@ -164,7 +162,7 @@ func Listen(hub *Hub, config *HubConfig, addr string, auth TCPAuthFunc) (*Hub, e
 		for {
 			conn, err := listener.Accept()
 			if err != nil {
-				log.Println("Error accepting", err)
+				slog.Warn("Error accepting", "err", err)
 				continue
 			}
 

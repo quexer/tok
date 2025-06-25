@@ -6,6 +6,7 @@ package tok
 
 import (
 	"errors"
+	"log/slog"
 	"sync"
 )
 
@@ -58,7 +59,7 @@ func (conn *connection) readLoop() {
 
 		b, err := conn.adapter.Read()
 		if err != nil {
-			//			log.Println("read err", err)
+			slog.Debug("read err", "err", err)
 			conn.hub.stateChange(conn, false)
 			return
 		}

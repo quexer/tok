@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -38,32 +39,32 @@ type simpleActor struct {
 }
 
 func (p *simpleActor) BeforeReceive(dv *tok.Device, data []byte) ([]byte, error) {
-	log.Printf("BeforeReceive %+v, %s", dv, data)
+	slog.Info("BeforeReceive", "dv", &dv, "data", data)
 	return data, nil
 }
 
 func (p *simpleActor) OnReceive(dv *tok.Device, data []byte) {
-	log.Printf("OnReceive %+v, %s", dv, data)
+	slog.Info("OnReceive", "dv", &dv, "data", data)
 	return
 }
 
 func (p *simpleActor) BeforeSend(dv *tok.Device, data []byte) ([]byte, error) {
-	log.Printf("BeforeSend %+v, %s", dv, data)
+	slog.Info("BeforeSend", "dv", &dv, "data", data)
 	return data, nil
 }
 
 func (p *simpleActor) OnSent(dv *tok.Device, data []byte) {
-	log.Printf("OnSent %+v, %s", dv, data)
+	slog.Info("OnSent", "dv", &dv, "data", data)
 	return
 }
 
 func (p *simpleActor) OnClose(dv *tok.Device) {
-	log.Printf("OnClose %+v", dv)
+	slog.Info("OnClose", "dv", &dv)
 	return
 }
 
 func (p *simpleActor) Ping() []byte {
-	log.Println("Ping")
+	slog.Info("Send Ping")
 	return []byte("ping")
 }
 

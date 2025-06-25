@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"math/rand/v2"
 	"time"
 
@@ -30,14 +31,14 @@ func main() {
 	}
 	defer conn.Close() // Close connection when function ends
 
-	fmt.Println("connected to websocket server")
+	slog.Info("connected to websocket server")
 
 	// send random message to server every 5 seconds
 	ticker := time.NewTicker(5 * time.Second)
 	go func() {
 		for {
 			<-ticker.C
-			if err := websocket.Message.Send(conn, fmt.Sprintf("Hello Server %d\n", rand.IntN(10))); err != nil {
+			if err := websocket.Message.Send(conn, fmt.Sprintf("hello server %d", rand.IntN(10))); err != nil {
 				log.Fatal(err)
 			}
 		}
@@ -47,16 +48,15 @@ func main() {
 	// receive messages from server
 	for {
 		var message string
-		err := websocket.Message.Receive(conn, &message)
-		if err != nil {
-			log.Println("fail to receive", err)
+		if err := websocket.Message.Receive(conn, &message); err != nil {
+			slog.Warn("fail to receive", "err", err)
 			break // quit loop
 		}
 
-		fmt.Printf("message received %s\n", message)
+		slog.Info("message received", "message", message)
 
 		if message == "ping" {
-			if err := websocket.Message.Send(conn, fmt.Sprintf("pong %d\n", rand.IntN(10))); err != nil {
+			if err := websocket.Message.Send(conn, fmt.Sprintf("pong %d", rand.IntN(10))); err != nil {
 				log.Fatal(err)
 			}
 		}
