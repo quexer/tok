@@ -31,4 +31,4 @@ Structure
 - `ws_conn.go`     : WebSocket server and adapter implementation.
 - `memory_q.go`    : Built-in in-memory message queue for offline messages.
 - `device.go`      : Device abstraction for user device.
-- `example/`       : Example server and client implementations.
+- `example/`       : Example server and client implementations. [See examples](./example/)
