@@ -12,6 +12,7 @@ type BeforeReceiveFunc func(dv *Device, data []byte) ([]byte, error)
 type HubConfig struct {
 	actor              Actor             // actor implement dispatch logic
 	fnBeforeReceive    BeforeReceiveFunc // optional preprocessing function for incoming data
+	fnBeforeSend       BeforeSendFunc    // optional preprocessing function for outgoing data
 	q                  Queue             // Message Queue, default is memory-based queue. if nil, message to offline user will not be cached
 	sso                bool              // Default true, if it's true, new connection  with same uid will kick off old ones
 	serverPingInterval time.Duration     // Server ping interval, default 30 seconds
@@ -91,5 +92,12 @@ func WithHubConfigReadTimeout(timeout time.Duration) HubConfigOption {
 func WithHubConfigBeforeReceive(beforeReceive BeforeReceiveFunc) HubConfigOption {
 	return func(hc *HubConfig) {
 		hc.fnBeforeReceive = beforeReceive
+	}
+}
+
+// WithHubConfigBeforeSend set optional BeforeSend function for hub config.
+func WithHubConfigBeforeSend(beforeSend BeforeSendFunc) HubConfigOption {
+	return func(hc *HubConfig) {
+		hc.fnBeforeSend = beforeSend
 	}
 }

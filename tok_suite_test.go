@@ -29,10 +29,6 @@ func (p *simpleActor) OnReceive(dv *tok.Device, data []byte) {
 	return
 }
 
-func (p *simpleActor) BeforeSend(dv *tok.Device, data []byte) ([]byte, error) {
-	return data, nil
-}
-
 func (p *simpleActor) OnSent(dv *tok.Device, data []byte) {
 	return
 }

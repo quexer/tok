@@ -23,9 +23,16 @@ func main() {
 		return data, nil
 	}
 	
+	// Define the BeforeSend function
+	beforeSend := func(dv *tok.Device, data []byte) ([]byte, error) {
+		slog.Info("BeforeSend", "dv", &dv, "data", data)
+		return data, nil
+	}
+	
 	hc := tok.NewHubConfig(&simpleActor{},
 		tok.WithHubConfigServerPingInterval(2*time.Second),
 		tok.WithHubConfigBeforeReceive(beforeReceive),
+		tok.WithHubConfigBeforeSend(beforeSend),
 	)
 
 	authFunc := func(r *http.Request) (*tok.Device, error) {
@@ -49,11 +56,6 @@ type simpleActor struct {
 func (p *simpleActor) OnReceive(dv *tok.Device, data []byte) {
 	slog.Info("OnReceive", "dv", &dv, "data", data)
 	return
-}
-
-func (p *simpleActor) BeforeSend(dv *tok.Device, data []byte) ([]byte, error) {
-	slog.Info("BeforeSend", "dv", &dv, "data", data)
-	return data, nil
 }
 
 func (p *simpleActor) OnSent(dv *tok.Device, data []byte) {
