@@ -212,18 +212,15 @@ func (p *Hub) down(f *downFrame, conns []*connection) {
 	expDown.Add(1)
 
 	for _, con := range conns {
-		// default is f.data
-		data := f.data
-		// Use the optional BeforeSend function if provided
-		if fn := p.config.fnBeforeSend; fn != nil {
-			if b, err := fn(con.dv, f.data); err != nil {
-				// f.chErr <- err. could be a bug: any beforeSend error should not stop sending
-				return
-			} else if b != nil {
-				data = b
-			}
+		data, err := p.beforeSend(con.dv, f.data)
+		if err != nil {
+			f.chErr <- err
+			continue
 		}
-
+		// default is f.data
+		if data == nil {
+			data = f.data
+		}
 		if err := con.Write(data); err != nil {
 			f.chErr <- err
 			continue
@@ -259,21 +256,24 @@ func (p *Hub) innerKick(uid interface{}) {
 }
 
 func (p *Hub) byeThenClose(kicker *Device, conn *connection) {
-	b := p.config.actor.Bye(kicker, "sso", conn.dv)
-	if b != nil {
-		// default is b
-		data := b
-		// Use the optional BeforeSend function if provided
-		if fn := p.config.fnBeforeSend; fn != nil {
-			if transformed, err := fn(conn.dv, b); err == nil && transformed != nil {
-				data = transformed
-			}
-		}
-		if err := conn.Write(data); err != nil {
-			slog.Warn("[tok] write bye failed", "err", err)
-		}
+	defer p.close(conn)
+
+	byeData := p.config.actor.Bye(kicker, "sso", conn.dv)
+	if byeData == nil {
+		return
 	}
-	p.close(conn)
+
+	data, err := p.beforeSend(conn.dv, byeData)
+	if err != nil {
+		slog.Warn("[tok] before send bye failed", "err", err)
+	}
+	// default is b
+	if data == nil {
+		data = byeData
+	}
+	if err := conn.Write(data); err != nil {
+		slog.Warn("[tok] write bye failed", "err", err)
+	}
 }
 
 func (p *Hub) close(conn *connection) {
@@ -342,7 +342,7 @@ func (p *Hub) initConnection(dv *Device, adapter conAdapter) {
 	p.stateChange(conn, true)
 
 	// start server ping loop if necessary
-	if p.config.actor.Ping() != nil {
+	if pingData := p.config.actor.Ping(); pingData != nil {
 		ticker := time.NewTicker(p.config.serverPingInterval)
 		go func() {
 			for range ticker.C {
@@ -350,14 +350,15 @@ func (p *Hub) initConnection(dv *Device, adapter conAdapter) {
 					ticker.Stop()
 					return
 				}
-				pingData := p.config.actor.Ping()
-				// default is pingData
-				data := pingData
 				// Use the optional BeforeSend function if provided
-				if fn := p.config.fnBeforeSend; fn != nil {
-					if transformed, err := fn(dv, pingData); err == nil && transformed != nil {
-						data = transformed
-					}
+				data, err := p.beforeSend(dv, pingData)
+				if err != nil {
+					slog.Warn("[tok] before send ping failed", "err", err)
+					continue
+				}
+				if data == nil {
+					// default is pingData
+					data = pingData
 				}
 				if err := conn.Write(data); err != nil {
 					slog.Warn("[tok] write ping failed", "err", err)
@@ -368,6 +369,15 @@ func (p *Hub) initConnection(dv *Device, adapter conAdapter) {
 
 	// block on read
 	conn.readLoop()
+}
+
+// beforeSend preprocess outgoing data before sending it.
+func (p *Hub) beforeSend(dv *Device, data []byte) ([]byte, error) {
+	fn := p.config.fnBeforeSend
+	if fn == nil {
+		return data, nil
+	}
+	return fn(dv, data)
 }
 
 func connExclude(l []*connection, ex *connection) []*connection {
