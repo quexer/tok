@@ -17,7 +17,7 @@ func TestTok(t *testing.T) {
 
 var ctx context.Context
 var actor tok.Actor
-var beforeReceive tok.BeforeReceiveFunc
+var beforeReceive tok.DataPreprocessor
 var _ = BeforeEach(func() {
 	ctx = context.Background()
 	actor = &simpleActor{}

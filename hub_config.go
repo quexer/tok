@@ -5,13 +5,13 @@ import (
 	"time"
 )
 
-// BeforeReceiveFunc is a function type for preprocessing incoming data before OnReceive
-type BeforeReceiveFunc func(dv *Device, data []byte) ([]byte, error)
+// DataPreprocessor is a function type for preprocessing incoming data before OnReceive
+type DataPreprocessor func(dv *Device, data []byte) ([]byte, error)
 
 // HubConfig config struct for creating new Hub
 type HubConfig struct {
 	actor              Actor                // actor implement dispatch logic
-	beforeReceive      BeforeReceiveFunc    // optional preprocessing function for incoming data
+	beforeReceive      DataPreprocessor     // optional preprocessing function for incoming data
 	q                  Queue                // Message Queue, default is memory-based queue. if nil, message to offline user will not be cached
 	sso                bool                 // Default true, if it's true, new connection  with same uid will kick off old ones
 	serverPingInterval time.Duration        // Server ping interval, default 30 seconds
@@ -88,7 +88,7 @@ func WithHubConfigReadTimeout(timeout time.Duration) HubConfigOption {
 }
 
 // WithHubConfigBeforeReceive set optional BeforeReceive function for hub config.
-func WithHubConfigBeforeReceive(beforeReceive BeforeReceiveFunc) HubConfigOption {
+func WithHubConfigBeforeReceive(beforeReceive DataPreprocessor) HubConfigOption {
 	return func(hc *HubConfig) {
 		hc.beforeReceive = beforeReceive
 	}
