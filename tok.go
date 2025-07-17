@@ -14,6 +14,9 @@ var ErrOffline = errors.New("offline")
 // ErrQueueRequired occurs while sending "cacheable" message without queue
 var ErrQueueRequired = errors.New("queue is required")
 
+// BeforeReceiveFunc is a function type for preprocessing incoming data before OnReceive
+type BeforeReceiveFunc func(dv *Device, data []byte) ([]byte, error)
+
 // BeforeSendFunc is a function type for preprocessing outgoing data before sending
 type BeforeSendFunc func(dv *Device, data []byte) ([]byte, error)
 

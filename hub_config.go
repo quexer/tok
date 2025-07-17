@@ -5,9 +5,6 @@ import (
 	"time"
 )
 
-// BeforeReceiveFunc is a function type for preprocessing incoming data before OnReceive
-type BeforeReceiveFunc func(dv *Device, data []byte) ([]byte, error)
-
 // HubConfig config struct for creating new Hub
 type HubConfig struct {
 	actor              Actor             // actor implement dispatch logic
