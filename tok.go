@@ -17,8 +17,6 @@ var ErrQueueRequired = errors.New("queue is required")
 // Actor should be implemented by applications to interact with tok.
 // Each method provides a hook for handling device communication events.
 type Actor interface {
-	// BeforeReceive is called before OnReceive. It can be used to preprocess incoming data.
-	BeforeReceive(dv *Device, data []byte) ([]byte, error)
 	// OnReceive is called whenever the server receives a valid payload.
 	OnReceive(dv *Device, data []byte)
 	// BeforeSend is called before sending data. If the return value is nil, the raw data is used.

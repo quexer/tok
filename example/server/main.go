@@ -16,8 +16,16 @@ var (
 
 func main() {
 	var hdl http.Handler
+	
+	// Define the BeforeReceive function
+	beforeReceive := func(dv *tok.Device, data []byte) ([]byte, error) {
+		slog.Info("BeforeReceive", "dv", &dv, "data", data)
+		return data, nil
+	}
+	
 	hc := tok.NewHubConfig(&simpleActor{},
 		tok.WithHubConfigServerPingInterval(2*time.Second),
+		tok.WithHubConfigBeforeReceive(beforeReceive),
 	)
 
 	authFunc := func(r *http.Request) (*tok.Device, error) {
@@ -36,11 +44,6 @@ func main() {
 }
 
 type simpleActor struct {
-}
-
-func (p *simpleActor) BeforeReceive(dv *tok.Device, data []byte) ([]byte, error) {
-	slog.Info("BeforeReceive", "dv", &dv, "data", data)
-	return data, nil
 }
 
 func (p *simpleActor) OnReceive(dv *tok.Device, data []byte) {
