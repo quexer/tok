@@ -217,7 +217,7 @@ func (p *Hub) down(f *downFrame, conns []*connection) {
 		// Use the optional BeforeSend function if provided
 		if fn := p.config.fnBeforeSend; fn != nil {
 			if b, err := fn(con.dv, f.data); err != nil {
-				f.chErr <- err
+				// f.chErr <- err. could be a bug: any beforeSend error should not stop sending
 				return
 			} else if b != nil {
 				data = b
