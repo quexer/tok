@@ -212,15 +212,19 @@ func (p *Hub) down(f *downFrame, conns []*connection) {
 	expDown.Add(1)
 
 	for _, con := range conns {
-		b, err := p.config.actor.BeforeSend(con.dv, f.data)
-		if err != nil {
-			return
-		}
-		if b == nil {
-			b = f.data
+		// default is f.data
+		data := f.data
+		// Use the optional BeforeSend function if provided
+		if fn := p.config.fnBeforeSend; fn != nil {
+			if b, err := fn(con.dv, f.data); err != nil {
+				f.chErr <- err
+				return
+			} else if b != nil {
+				data = b
+			}
 		}
 
-		if err := con.Write(b); err != nil {
+		if err := con.Write(data); err != nil {
 			f.chErr <- err
 			continue
 		}
@@ -257,14 +261,16 @@ func (p *Hub) innerKick(uid interface{}) {
 func (p *Hub) byeThenClose(kicker *Device, conn *connection) {
 	b := p.config.actor.Bye(kicker, "sso", conn.dv)
 	if b != nil {
-		data, err := p.config.actor.BeforeSend(conn.dv, b)
-		if err == nil {
-			if data != nil {
-				b = data
+		// default is b
+		data := b
+		// Use the optional BeforeSend function if provided
+		if fn := p.config.fnBeforeSend; fn != nil {
+			if transformed, err := fn(conn.dv, b); err == nil && transformed != nil {
+				data = transformed
 			}
-			if err := conn.Write(b); err != nil {
-				slog.Warn("[tok] write bye failed", "err", err)
-			}
+		}
+		if err := conn.Write(data); err != nil {
+			slog.Warn("[tok] write bye failed", "err", err)
 		}
 	}
 	p.close(conn)
@@ -344,14 +350,17 @@ func (p *Hub) initConnection(dv *Device, adapter conAdapter) {
 					ticker.Stop()
 					return
 				}
-				b, err := p.config.actor.BeforeSend(dv, p.config.actor.Ping())
-				if err == nil {
-					if b == nil {
-						b = p.config.actor.Ping()
+				pingData := p.config.actor.Ping()
+				// default is pingData
+				data := pingData
+				// Use the optional BeforeSend function if provided
+				if fn := p.config.fnBeforeSend; fn != nil {
+					if transformed, err := fn(dv, pingData); err == nil && transformed != nil {
+						data = transformed
 					}
-					if err := conn.Write(b); err != nil {
-						slog.Warn("[tok] write ping failed", "err", err)
-					}
+				}
+				if err := conn.Write(data); err != nil {
+					slog.Warn("[tok] write ping failed", "err", err)
 				}
 			}
 		}()
