@@ -89,11 +89,19 @@ func (p *Hub) run() {
 			slog.Debug("up data")
 			expUp.Add(1)
 			go func() {
-				b, err := p.config.actor.BeforeReceive(f.dv, f.data)
-				if err != nil {
-					return
-				}
-				if b == nil {
+				var b []byte
+				var err error
+				
+				// Use the optional BeforeReceive function if provided
+				if p.config.beforeReceive != nil {
+					b, err = p.config.beforeReceive(f.dv, f.data)
+					if err != nil {
+						return
+					}
+					if b == nil {
+						b = f.data
+					}
+				} else {
 					b = f.data
 				}
 				p.config.actor.OnReceive(f.dv, b)
