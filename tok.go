@@ -14,15 +14,21 @@ var ErrOffline = errors.New("offline")
 // ErrQueueRequired occurs while sending "cacheable" message without queue
 var ErrQueueRequired = errors.New("queue is required")
 
-// Actor application should implement this interface to interact with tok
+// Actor should be implemented by applications to interact with tok.
+// Each method provides a hook for handling device communication events.
 type Actor interface {
-	BeforeReceive(dv *Device, data []byte) ([]byte, error) // is invoked before OnReceive
-	OnReceive(dv *Device, data []byte)                     // is invoked every time the server receive valid payload
-	BeforeSend(dv *Device, data []byte) ([]byte, error)    // is invoked before Send, if return value is nil, use raw data
-	OnSent(dv *Device, data []byte)                        // is invoked if message is sent successfully. count mean copy quantity
-	// OnClose is invoked after a connection has been closed
-	// active, count of active connections for this user
+	// BeforeReceive is called before OnReceive. It can be used to preprocess incoming data.
+	BeforeReceive(dv *Device, data []byte) ([]byte, error)
+	// OnReceive is called whenever the server receives a valid payload.
+	OnReceive(dv *Device, data []byte)
+	// BeforeSend is called before sending data. If the return value is nil, the raw data is used.
+	BeforeSend(dv *Device, data []byte) ([]byte, error)
+	// OnSent is called after a message is sent successfully.
+	OnSent(dv *Device, data []byte)
+	// OnClose is called after a connection has been closed.
 	OnClose(dv *Device)
-	Ping() []byte                                         // Build ping payload.  auto ping feature will be disabled if this method return nil
-	Bye(kicker *Device, reason string, dv *Device) []byte // Build payload for different reason before connection is closed
+	// Ping builds the ping payload. If nil is returned, the auto-ping feature is disabled.
+	Ping() []byte
+	// Bye builds the payload to notify before a connection is closed for a specific reason.
+	Bye(kicker *Device, reason string, dv *Device) []byte
 }
