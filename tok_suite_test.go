@@ -17,13 +17,9 @@ func TestTok(t *testing.T) {
 
 var ctx context.Context
 var actor tok.Actor
-var beforeReceive tok.DataPreprocessor
 var _ = BeforeEach(func() {
 	ctx = context.Background()
 	actor = &simpleActor{}
-	beforeReceive = func(dv *tok.Device, data []byte) ([]byte, error) {
-		return data, nil
-	}
 })
 
 type simpleActor struct {

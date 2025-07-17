@@ -89,22 +89,17 @@ func (p *Hub) run() {
 			slog.Debug("up data")
 			expUp.Add(1)
 			go func() {
-				var b []byte
-				var err error
-				
+				// default is f.data
+				data := f.data
 				// Use the optional BeforeReceive function if provided
-				if p.config.beforeReceive != nil {
-					b, err = p.config.beforeReceive(f.dv, f.data)
-					if err != nil {
+				if fn := p.config.fnBeforeReceive; fn != nil {
+					if b, err := fn(f.dv, f.data); err != nil {
 						return
+					} else {
+						data = b
 					}
-					if b == nil {
-						b = f.data
-					}
-				} else {
-					b = f.data
 				}
-				p.config.actor.OnReceive(f.dv, b)
+				p.config.actor.OnReceive(f.dv, data)
 			}()
 		case ff := <-p.chDown:
 			if l := p.cons[ff.uid]; len(l) > 0 {
