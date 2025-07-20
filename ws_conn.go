@@ -14,11 +14,13 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+// xWsAdapter is an adapter for golang.org/x/net/websocket connections.
+// It implements the conAdapter interface and provides unified read/write/timeout management for websockets.
 type xWsAdapter struct {
-	conn         *websocket.Conn
-	txt          bool
-	writeTimeout time.Duration
-	readTimeout  time.Duration
+	conn         *websocket.Conn // Underlying x websocket connection
+	txt          bool            // If true, use text frames; otherwise, use binary frames
+	writeTimeout time.Duration   // Timeout for write operations
+	readTimeout  time.Duration   // Timeout for read operations
 }
 
 func (p *xWsAdapter) Read() ([]byte, error) {
