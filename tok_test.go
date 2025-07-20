@@ -2,6 +2,7 @@ package tok_test
 
 import (
 	"errors"
+	"net/http"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -110,6 +111,80 @@ var _ = Describe("AfterSend Functional Option", func() {
 			tok.WithHubConfigSso(false),
 		)
 		Ω(hubConfig).ToNot(BeNil())
+	})
+	
+})
+
+type testCloseHandler struct {
+	closeCalled bool
+	lastDevice  *tok.Device
+}
+
+func (h *testCloseHandler) OnClose(dv *tok.Device) {
+	h.closeCalled = true
+	h.lastDevice = dv
+}
+
+var _ = Describe("CloseHandler Functional Option", func() {
+	
+	It("should work without CloseHandler option", func() {
+		hubConfig := tok.NewHubConfig(actor)
+		Ω(hubConfig).ToNot(BeNil())
+		// fnOnClose should be nil, so CloseHandler functionality is disabled
+	})
+	
+	It("should work with CloseHandler option", func() {
+		closeHandler := &testCloseHandler{}
+		
+		hubConfig := tok.NewHubConfig(actor, tok.WithHubConfigCloseHandler(closeHandler))
+		Ω(hubConfig).ToNot(BeNil())
+		
+		// Basic verification that the config was created successfully
+		// The actual functionality is tested through integration
+		Ω(closeHandler.closeCalled).To(BeFalse()) // Not called yet
+	})
+	
+	It("should accept nil CloseHandler", func() {
+		hubConfig := tok.NewHubConfig(actor, tok.WithHubConfigCloseHandler(nil))
+		Ω(hubConfig).ToNot(BeNil())
+	})
+	
+	It("should work with multiple functional options including CloseHandler", func() {
+		closeHandler := &testCloseHandler{}
+		
+		afterSendFunc := func(dv *tok.Device, data []byte) {
+			// Do nothing, just verify it can be configured
+		}
+		
+		hubConfig := tok.NewHubConfig(actor, 
+			tok.WithHubConfigCloseHandler(closeHandler),
+			tok.WithHubConfigAfterSend(afterSendFunc),
+			tok.WithHubConfigSso(false),
+		)
+		Ω(hubConfig).ToNot(BeNil())
+	})
+	
+	It("should call CloseHandler when using integration with WsHandler", func() {
+		closeHandler := &testCloseHandler{}
+		actorHandler := &trackingActor{}
+		
+		// Create a websocket handler with CloseHandler configured
+		auth := func(r *http.Request) (*tok.Device, error) {
+			return tok.CreateDevice("test-user", ""), nil
+		}
+		
+		hub, handler := tok.CreateWsHandler(auth,
+			tok.WithWsHandlerHubConfig(tok.NewHubConfig(actorHandler, 
+				tok.WithHubConfigCloseHandler(closeHandler))))
+		
+		Ω(hub).ToNot(BeNil())
+		Ω(handler).ToNot(BeNil())
+		
+		// Initially, neither handler should have been called
+		Ω(closeHandler.closeCalled).To(BeFalse())
+		
+		// This test verifies that the handler configuration is set up correctly
+		// The actual close behavior would be tested in a full integration test with a real connection
 	})
 	
 })

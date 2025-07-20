@@ -281,6 +281,13 @@ func (p *Hub) byeThenClose(kicker *Device, conn *connection) {
 
 func (p *Hub) close(conn *connection) {
 	conn.close()
+	
+	// Call the optional close handler if configured
+	if p.config.fnOnClose != nil {
+		p.config.fnOnClose.OnClose(conn.dv)
+	}
+	
+	// Call the actor's OnClose method
 	p.config.actor.OnClose(conn.dv)
 }
 

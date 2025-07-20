@@ -20,6 +20,12 @@ type BeforeReceiveFunc func(dv *Device, data []byte) ([]byte, error)
 // BeforeSendFunc is a function type for preprocessing outgoing data before sending
 type BeforeSendFunc func(dv *Device, data []byte) ([]byte, error)
 
+// CloseHandler is an interface for handling connection close events
+type CloseHandler interface {
+	// OnClose is called after a connection has been closed
+	OnClose(dv *Device)
+}
+
 // Actor should be implemented by applications to interact with tok.
 // Each method provides a hook for handling device communication events.
 type Actor interface {

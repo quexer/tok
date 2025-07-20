@@ -30,6 +30,9 @@ func (a *MinimalActor) Bye(kicker *tok.Device, reason string, dv *tok.Device) []
 func main() {
 	// Example of creating a hub with AfterSend via functional option
 	ExampleWithAfterSendOption()
+	
+	// Example of creating a hub with CloseHandler via functional option
+	ExampleWithCloseHandlerOption()
 }
 
 // Example of creating a hub with AfterSend via functional option
@@ -47,4 +50,27 @@ func ExampleWithAfterSendOption() {
 	// Use config to create hub
 	_ = config
 	slog.Info("Hub configuration created with AfterSend functional option")
+}
+
+// CustomCloseHandler demonstrates implementing the CloseHandler interface
+type CustomCloseHandler struct{}
+
+func (h *CustomCloseHandler) OnClose(dv *tok.Device) {
+	slog.Info("CustomCloseHandler.OnClose", "dv", &dv)
+	// Add custom close handling logic here
+	// This is called in addition to the Actor's OnClose method
+}
+
+// Example of creating a hub with CloseHandler via functional option
+func ExampleWithCloseHandlerOption() {
+	// Create a custom close handler
+	closeHandler := &CustomCloseHandler{}
+
+	config := tok.NewHubConfig(&MinimalActor{},
+		tok.WithHubConfigCloseHandler(closeHandler),
+	)
+
+	// Use config to create hub
+	_ = config
+	slog.Info("Hub configuration created with CloseHandler functional option")
 }
