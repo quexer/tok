@@ -281,8 +281,8 @@ func (p *Hub) close(conn *connection) {
 	conn.close()
 
 	// Call the optional close handler if configured
-	if p.config.fnOnClose != nil {
-		p.config.fnOnClose.OnClose(conn.dv)
+	if hdl := p.config.closeHandler; hdl != nil {
+		hdl.OnClose(conn.dv)
 	}
 }
 

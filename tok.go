@@ -29,9 +29,9 @@ type CloseHandler interface {
 	OnClose(dv *Device)
 }
 
-// PingGenerator is an interface for generating ping payloads
+// PingGenerator is an interface for generating server-side ping payloads
 type PingGenerator interface {
-	// Ping generate server-ping payload
+	// Ping generate server-side ping payload
 	Ping() []byte
 }
 
