@@ -225,8 +225,9 @@ func (p *Hub) down(f *downFrame, conns []*connection) {
 			f.chErr <- err
 			continue
 		}
-		if p.config.fnOnSent != nil {
-			go p.config.fnOnSent(con.dv, f.data)
+
+		if fn := p.config.fnOnSent; fn != nil {
+			go fn(con.dv, f.data)
 		}
 	}
 
