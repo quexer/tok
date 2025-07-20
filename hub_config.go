@@ -10,7 +10,7 @@ type HubConfig struct {
 	actor              Actor             // actor implement dispatch logic
 	pingProducer       PingGenerator     // optional server-side ping generator for auto-ping feature
 	byeGenerator       ByeGenerator      // optional bye generator for connection close notifications
-	fnBeforeReceive    BeforeReceiveFunc // optional preprocessing function for incoming data
+	fnBeforeReceive    BeforeReceiveHandler // optional preprocessing handler for incoming data
 	fnBeforeSend       BeforeSendFunc    // optional preprocessing function for outgoing data
 	fnAfterSend        AfterSendFunc     // optional AfterSend callback function
 	closeHandler       CloseHandler      // optional CloseHandler for connection close events
@@ -89,8 +89,8 @@ func WithHubConfigReadTimeout(timeout time.Duration) HubConfigOption {
 	}
 }
 
-// WithHubConfigBeforeReceive set optional BeforeReceive function for hub config.
-func WithHubConfigBeforeReceive(beforeReceive BeforeReceiveFunc) HubConfigOption {
+// WithHubConfigBeforeReceive set optional BeforeReceive handler for hub config.
+func WithHubConfigBeforeReceive(beforeReceive BeforeReceiveHandler) HubConfigOption {
 	return func(hc *HubConfig) {
 		hc.fnBeforeReceive = beforeReceive
 	}

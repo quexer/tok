@@ -18,12 +18,9 @@ var _ = Describe("BeforeReceive Functional Option", func() {
 	})
 
 	It("should work with BeforeReceive option", func() {
-		beforeReceiveFunc := func(dv *tok.Device, data []byte) ([]byte, error) {
-			// Transform data by adding a prefix
-			return append([]byte("prefix:"), data...), nil
-		}
+		beforeReceiveHandler := &testBeforeReceiveHandler{prefix: "prefix:"}
 
-		hubConfig := tok.NewHubConfig(actor, tok.WithHubConfigBeforeReceive(beforeReceiveFunc))
+		hubConfig := tok.NewHubConfig(actor, tok.WithHubConfigBeforeReceive(beforeReceiveHandler))
 		Ω(hubConfig).ToNot(BeNil())
 	})
 
@@ -101,13 +98,11 @@ var _ = Describe("AfterSend Functional Option", func() {
 			// Do nothing, just verify it can be configured
 		}
 
-		beforeReceiveFunc := func(dv *tok.Device, data []byte) ([]byte, error) {
-			return data, nil
-		}
+		beforeReceiveHandler := &testBeforeReceiveHandler{}
 
 		hubConfig := tok.NewHubConfig(actor,
 			tok.WithHubConfigAfterSend(afterSendFunc),
-			tok.WithHubConfigBeforeReceive(beforeReceiveFunc),
+			tok.WithHubConfigBeforeReceive(beforeReceiveHandler),
 			tok.WithHubConfigSso(false),
 		)
 		Ω(hubConfig).ToNot(BeNil())
@@ -123,6 +118,18 @@ type testCloseHandler struct {
 func (h *testCloseHandler) OnClose(dv *tok.Device) {
 	h.closeCalled = true
 	h.lastDevice = dv
+}
+
+type testBeforeReceiveHandler struct {
+	prefix string
+}
+
+func (h *testBeforeReceiveHandler) BeforeReceive(dv *tok.Device, data []byte) ([]byte, error) {
+	if h.prefix != "" {
+		// Transform data by adding a prefix
+		return append([]byte(h.prefix), data...), nil
+	}
+	return data, nil
 }
 
 var _ = Describe("PingGenerator Functional Option", func() {

@@ -92,9 +92,9 @@ func (p *Hub) run() {
 			go func() {
 				// default is f.data
 				data := f.data
-				// Use the optional BeforeReceive function if provided
-				if fn := p.config.fnBeforeReceive; fn != nil {
-					if b, err := fn(f.dv, f.data); err != nil {
+				// Use the optional BeforeReceive handler if provided
+				if handler := p.config.fnBeforeReceive; handler != nil {
+					if b, err := handler.BeforeReceive(f.dv, f.data); err != nil {
 						return
 					} else {
 						data = b
