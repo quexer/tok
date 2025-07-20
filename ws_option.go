@@ -1,5 +1,18 @@
 package tok
 
+// WsEngine represents different WebSocket engine implementations
+type WsEngine int
+
+const (
+	// WsEngineXNet uses golang.org/x/net/websocket (default)
+	WsEngineXNet WsEngine = iota
+	// WsEngineGorilla uses github.com/gorilla/websocket
+	WsEngineGorilla
+	// Future engines can be easily added here, e.g.:
+	// WsEngineNhooyr for nhooyr.io/websocket
+	// WsEngineCustom for custom implementations
+)
+
 type WsHandlerOption func(*WsHandler)
 
 // WithWsHandlerTxt set txt for ws handler
@@ -25,9 +38,21 @@ func WithWsHandlerHubConfig(hc *HubConfig) WsHandlerOption {
 	}
 }
 
+// WithWsHandlerEngine sets the websocket engine for ws handler
+func WithWsHandlerEngine(engine WsEngine) WsHandlerOption {
+	return func(h *WsHandler) {
+		h.engine = engine
+	}
+}
+
 // WithWsHandlerGorilla set whether to use Gorilla WebSocket instead of x/net/websocket
+// Deprecated: Use WithWsHandlerEngine(WsEngineGorilla) or WithWsHandlerEngine(WsEngineXNet) instead
 func WithWsHandlerGorilla(useGorilla bool) WsHandlerOption {
 	return func(h *WsHandler) {
-		h.useGorilla = useGorilla
+		if useGorilla {
+			h.engine = WsEngineGorilla
+		} else {
+			h.engine = WsEngineXNet
+		}
 	}
 }
