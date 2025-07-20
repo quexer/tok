@@ -20,8 +20,11 @@ type BeforeReceiveHandler interface {
 	BeforeReceive(dv *Device, data []byte) ([]byte, error)
 }
 
-// BeforeSendFunc is a function type for preprocessing outgoing data before sending
-type BeforeSendFunc func(dv *Device, data []byte) ([]byte, error)
+// BeforeSendHandler is an interface for preprocessing outgoing data before sending
+type BeforeSendHandler interface {
+	// BeforeSend is called to preprocess outgoing data before sending
+	BeforeSend(dv *Device, data []byte) ([]byte, error)
+}
 
 // AfterSendFunc is the callback after sending data.
 type AfterSendFunc func(*Device, []byte)

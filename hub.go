@@ -377,11 +377,11 @@ func (p *Hub) initConnection(dv *Device, adapter conAdapter) {
 
 // beforeSend preprocess outgoing data before sending it.
 func (p *Hub) beforeSend(dv *Device, data []byte) ([]byte, error) {
-	fn := p.config.fnBeforeSend
-	if fn == nil {
+	hdl := p.config.hdlBeforeSend
+	if hdl == nil {
 		return data, nil
 	}
-	return fn(dv, data)
+	return hdl.BeforeSend(dv, data)
 }
 
 func connExclude(l []*connection, ex *connection) []*connection {
