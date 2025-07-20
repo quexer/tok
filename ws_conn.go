@@ -68,11 +68,11 @@ func (p *xWsAdapter) ShareConn(adapter conAdapter) bool {
 }
 
 type WsHandler struct {
-	hub        *Hub
-	hubConfig  *HubConfig // If config is not nil, a new hub will be created and replace old one
-	txt        bool       // If txt is true web socket will serve text frame, otherwise serve binary frame
-	auth       WsAuthFunc // auth function is used for user authorization
-	useGorilla bool       // If true, use Gorilla WebSocket; otherwise, use x/net/websocket
+	hub       *Hub
+	hubConfig *HubConfig // If config is not nil, a new hub will be created and replace old one
+	txt       bool       // If txt is true web socket will serve text frame, otherwise serve binary frame
+	auth      WsAuthFunc // auth function is used for user authorization
+	engine    WsEngine   // WebSocket engine to use
 }
 
 // hdlFromXwebSocket returns an x/web/websocket handler function that handles incoming websocket connections.
@@ -129,11 +129,11 @@ func (p *WsHandler) hdlFromGorillaWebSocket() http.HandlerFunc {
 // Return hub and http handler
 func CreateWsHandler(auth WsAuthFunc, opts ...WsHandlerOption) (*Hub, http.Handler) {
 	wsh := &WsHandler{
-		hub:        nil,
-		hubConfig:  nil,
-		txt:        true,
-		auth:       auth,
-		useGorilla: false, // Default to x/net/websocket for backward compatibility
+		hub:       nil,
+		hubConfig: nil,
+		txt:       true,
+		auth:      auth,
+		engine:    WsEngineXNet, // Default to x/net/websocket for backward compatibility
 	}
 
 	for _, opt := range opts {
@@ -148,10 +148,14 @@ func CreateWsHandler(auth WsAuthFunc, opts ...WsHandlerOption) (*Hub, http.Handl
 		log.Fatal("hub is needed")
 	}
 
-	if wsh.useGorilla {
+	switch wsh.engine {
+	case WsEngineGorilla:
 		return wsh.hub, wsh.hdlFromGorillaWebSocket()
+	case WsEngineXNet:
+		fallthrough
+	default:
+		return wsh.hub, wsh.hdlFromXwebSocket()
 	}
-	return wsh.hub, wsh.hdlFromXwebSocket()
 }
 
 // WsAuthFunc websocket auth function, return Device interface

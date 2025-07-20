@@ -26,7 +26,14 @@ example/server/server
 example/client/client
 example/gorilla_server/gorilla_server
 example/gorilla_client/gorilla_client
+example/enum_server/enum_server
+example/xws_server/xws_server
+example/xws_client/xws_client
+example/example
 client
 server
 gorilla_client
 gorilla_server
+enum_server
+xws_server
+xws_client

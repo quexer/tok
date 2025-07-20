@@ -38,4 +38,26 @@ var _ = Describe("WsConn", func() {
 		Ω(hub).ToNot(BeNil())
 		Ω(hdl).ToNot(BeNil())
 	})
+
+	It("CreateWsHandler with Engine enum - XNet", func() {
+		hub, hdl := tok.CreateWsHandler(auth,
+			tok.WithWsHandlerTxt(true),
+			tok.WithWsHandlerEngine(tok.WsEngineXNet),
+			tok.WithWsHandlerHubConfig(tok.NewHubConfig(actor,
+				tok.WithHubConfigSso(true),
+				tok.WithHubConfigPingProducer(&testPingGenerator{}))))
+		Ω(hub).ToNot(BeNil())
+		Ω(hdl).ToNot(BeNil())
+	})
+
+	It("CreateWsHandler with Engine enum - Gorilla", func() {
+		hub, hdl := tok.CreateWsHandler(auth,
+			tok.WithWsHandlerTxt(true),
+			tok.WithWsHandlerEngine(tok.WsEngineGorilla),
+			tok.WithWsHandlerHubConfig(tok.NewHubConfig(actor,
+				tok.WithHubConfigSso(true),
+				tok.WithHubConfigPingProducer(&testPingGenerator{}))))
+		Ω(hub).ToNot(BeNil())
+		Ω(hdl).ToNot(BeNil())
+	})
 })
