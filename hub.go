@@ -345,7 +345,7 @@ func (p *Hub) initConnection(dv *Device, adapter conAdapter) {
 	p.stateChange(conn, true)
 
 	// start server ping loop if necessary
-	if pingData := p.config.actor.Ping(); pingData != nil {
+	if p.config.actor.Ping() != nil {
 		ticker := time.NewTicker(p.config.serverPingInterval)
 		go func() {
 			for range ticker.C {
@@ -354,6 +354,8 @@ func (p *Hub) initConnection(dv *Device, adapter conAdapter) {
 					return
 				}
 				// Use the optional BeforeSend function if provided
+				// Get fresh ping data for each iteration to ensure the current state of the connection
+				pingData := p.config.actor.Ping()
 				data, err := p.beforeSend(dv, pingData)
 				if err != nil {
 					slog.Warn("[tok] before send ping failed", "err", err)
