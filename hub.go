@@ -224,8 +224,8 @@ func (p *Hub) down(f *downFrame, conns []*connection) {
 			continue
 		}
 
-		if fn := p.config.fnAfterSend; fn != nil {
-			go fn(con.dv, f.data)
+		if hdl := p.config.hdlAfterSend; hdl != nil {
+			go hdl.AfterSend(con.dv, f.data)
 		}
 	}
 

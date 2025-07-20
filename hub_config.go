@@ -12,7 +12,7 @@ type HubConfig struct {
 	byeGenerator       ByeGenerator         // optional bye generator for connection close notifications
 	hdlBeforeReceive   BeforeReceiveHandler // optional preprocessing handler for incoming data
 	hdlBeforeSend      BeforeSendHandler    // optional preprocessing handler for outgoing data
-	fnAfterSend        AfterSendFunc        // optional AfterSend callback function
+	hdlAfterSend       AfterSendHandler     // optional AfterSend handler
 	closeHandler       CloseHandler         // optional CloseHandler for connection close events
 	q                  Queue                // Message Queue, default is memory-based queue. if nil, message to offline user will not be cached
 	sso                bool                 // Default true, if it's true, new connection  with same uid will kick off old ones
@@ -103,10 +103,10 @@ func WithHubConfigBeforeSend(beforeSend BeforeSendHandler) HubConfigOption {
 	}
 }
 
-// WithHubConfigAfterSend set optional AfterSend callback function for hub config.
-func WithHubConfigAfterSend(afterSend AfterSendFunc) HubConfigOption {
+// WithHubConfigAfterSend set optional AfterSend handler for hub config.
+func WithHubConfigAfterSend(afterSend AfterSendHandler) HubConfigOption {
 	return func(hc *HubConfig) {
-		hc.fnAfterSend = afterSend
+		hc.hdlAfterSend = afterSend
 	}
 }
 

@@ -26,8 +26,11 @@ type BeforeSendHandler interface {
 	BeforeSend(dv *Device, data []byte) ([]byte, error)
 }
 
-// AfterSendFunc is the callback after sending data.
-type AfterSendFunc func(*Device, []byte)
+// AfterSendHandler is an interface for handling events after sending data
+type AfterSendHandler interface {
+	// AfterSend is called after data has been sent to a device
+	AfterSend(dv *Device, data []byte)
+}
 
 // CloseHandler is an interface for handling connection close events
 type CloseHandler interface {
