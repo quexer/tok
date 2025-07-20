@@ -46,8 +46,8 @@ func main() {
 
 	http.Handle("/ws", hdl)
 
-	slog.Info("Gorilla WebSocket server starting on :8091")
-	err := http.ListenAndServe(":8091", nil)
+	slog.Info("Gorilla WebSocket server starting on :8090")
+	err := http.ListenAndServe(":8090", nil)
 	if err != nil {
 		log.Fatalf("Error starting HTTP server: %v", err)
 	}

@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	serverURL = "ws://localhost:8091/ws" // Gorilla WebSocket server address
+	serverURL = "ws://localhost:8090/ws" // Gorilla WebSocket server address
 )
 
 func main() {
