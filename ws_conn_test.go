@@ -21,7 +21,7 @@ var _ = Describe("WsConn", func() {
 	It("CreateWsHandler", func() {
 		hub, hdl := tok.CreateWsHandler(auth,
 			tok.WithWsHandlerTxt(true),
-			tok.WithWsHandlerHubConfig(tok.NewHubConfig(actor, 
+			tok.WithWsHandlerHubConfig(tok.NewHubConfig(actor,
 				tok.WithHubConfigSso(true),
 				tok.WithHubConfigPingProducer(&testPingGenerator{}))))
 		Ω(hub).ToNot(BeNil())
@@ -32,7 +32,7 @@ var _ = Describe("WsConn", func() {
 		hub, hdl := tok.CreateWsHandler(auth,
 			tok.WithWsHandlerTxt(true),
 			tok.WithWsHandlerGorilla(true),
-			tok.WithWsHandlerHubConfig(tok.NewHubConfig(actor, 
+			tok.WithWsHandlerHubConfig(tok.NewHubConfig(actor,
 				tok.WithHubConfigSso(true),
 				tok.WithHubConfigPingProducer(&testPingGenerator{}))))
 		Ω(hub).ToNot(BeNil())

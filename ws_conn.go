@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gorilla/websocket"
+	gorillaws "github.com/gorilla/websocket"
 	xwebsocket "golang.org/x/net/websocket"
 )
 
@@ -70,7 +70,7 @@ func (p *xWsAdapter) ShareConn(adapter conAdapter) bool {
 // gorillaWsAdapter is an adapter for github.com/gorilla/websocket connections.
 // It implements the conAdapter interface and provides unified read/write/timeout management for websockets.
 type gorillaWsAdapter struct {
-	conn         *websocket.Conn // Underlying gorilla websocket connection
+	conn         *gorillaws.Conn // Underlying gorilla websocket connection
 	txt          bool            // If true, use text frames; otherwise, use binary frames
 	writeTimeout time.Duration   // Timeout for write operations
 	readTimeout  time.Duration   // Timeout for read operations
@@ -99,9 +99,9 @@ func (p *gorillaWsAdapter) Write(b []byte) error {
 
 	var messageType int
 	if p.txt {
-		messageType = websocket.TextMessage
+		messageType = gorillaws.TextMessage
 	} else {
-		messageType = websocket.BinaryMessage
+		messageType = gorillaws.BinaryMessage
 	}
 
 	return p.conn.WriteMessage(messageType, b)
@@ -120,11 +120,11 @@ func (p *gorillaWsAdapter) ShareConn(adapter conAdapter) bool {
 }
 
 type WsHandler struct {
-	hub       *Hub
-	hubConfig *HubConfig // If config is not nil, a new hub will be created and replace old one
-	txt       bool       // If txt is true web socket will serve text frame, otherwise serve binary frame
-	auth      WsAuthFunc // auth function is used for user authorization
-	useGorilla bool      // If true, use Gorilla WebSocket; otherwise, use x/net/websocket
+	hub        *Hub
+	hubConfig  *HubConfig // If config is not nil, a new hub will be created and replace old one
+	txt        bool       // If txt is true web socket will serve text frame, otherwise serve binary frame
+	auth       WsAuthFunc // auth function is used for user authorization
+	useGorilla bool       // If true, use Gorilla WebSocket; otherwise, use x/net/websocket
 }
 
 // hdlFromXwebSocket returns an x/web/websocket handler function that handles incoming websocket connections.
@@ -147,7 +147,7 @@ func (p *WsHandler) hdlFromXwebSocket() xwebsocket.Handler {
 
 // hdlFromGorillaWebSocket returns a gorilla/websocket handler function that handles incoming websocket connections.
 func (p *WsHandler) hdlFromGorillaWebSocket() http.HandlerFunc {
-	upgrader := websocket.Upgrader{
+	upgrader := gorillaws.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true // Allow connections from any origin for now
 		},
@@ -181,10 +181,10 @@ func (p *WsHandler) hdlFromGorillaWebSocket() http.HandlerFunc {
 // Return hub and http handler
 func CreateWsHandler(auth WsAuthFunc, opts ...WsHandlerOption) (*Hub, http.Handler) {
 	wsh := &WsHandler{
-		hub:       nil,
-		hubConfig: nil,
-		txt:       true,
-		auth:      auth,
+		hub:        nil,
+		hubConfig:  nil,
+		txt:        true,
+		auth:       auth,
 		useGorilla: false, // Default to x/net/websocket for backward compatibility
 	}
 

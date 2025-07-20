@@ -56,5 +56,3 @@ var _ = Describe("MemoryQ", func() {
 	})
 
 })
-
-

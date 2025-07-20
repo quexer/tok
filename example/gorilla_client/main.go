@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/gorilla/websocket"
+	gorillaws "github.com/gorilla/websocket"
 )
 
 const (
@@ -28,7 +28,7 @@ func main() {
 	}
 
 	// Connect to WebSocket server using Gorilla WebSocket
-	conn, _, err := websocket.DefaultDialer.Dial(u.String(), headers)
+	conn, _, err := gorillaws.DefaultDialer.Dial(u.String(), headers)
 	if err != nil {
 		log.Fatal("connection fail", err)
 	}
@@ -42,7 +42,7 @@ func main() {
 		for {
 			<-ticker.C
 			message := fmt.Sprintf("hello gorilla server %d", rand.IntN(10))
-			if err := conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
+			if err := conn.WriteMessage(gorillaws.TextMessage, []byte(message)); err != nil {
 				log.Fatal(err)
 			}
 		}
@@ -60,7 +60,7 @@ func main() {
 
 		if string(message) == "ping" {
 			pongMessage := fmt.Sprintf("pong %d", rand.IntN(10))
-			if err := conn.WriteMessage(websocket.TextMessage, []byte(pongMessage)); err != nil {
+			if err := conn.WriteMessage(gorillaws.TextMessage, []byte(pongMessage)); err != nil {
 				log.Fatal(err)
 			}
 		}
