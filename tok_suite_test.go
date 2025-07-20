@@ -29,10 +29,6 @@ func (p *simpleActor) OnReceive(dv *tok.Device, data []byte) {
 	return
 }
 
-func (p *simpleActor) OnSent(dv *tok.Device, data []byte) {
-	return
-}
-
 func (p *simpleActor) OnClose(dv *tok.Device) {
 	return
 }
@@ -53,12 +49,6 @@ type trackingActor struct {
 
 func (p *trackingActor) OnReceive(dv *tok.Device, data []byte) {
 	return
-}
-
-func (p *trackingActor) OnSent(dv *tok.Device, data []byte) {
-	p.OnSentCalled = true
-	p.OnSentDevice = dv
-	p.OnSentData = data
 }
 
 func (p *trackingActor) OnClose(dv *tok.Device) {

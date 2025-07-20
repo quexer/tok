@@ -7,19 +7,12 @@ import (
 	"github.com/quexer/tok"
 )
 
-// MinimalActor demonstrates an actor that only implements the required methods
-// OnSent can be provided via functional options instead
+// MinimalActor demonstrates an actor with only required methods
+// OnSent functionality is available via functional options only
 type MinimalActor struct{}
 
 func (a *MinimalActor) OnReceive(dv *tok.Device, data []byte) {
 	slog.Info("MinimalActor.OnReceive", "dv", &dv, "data", string(data))
-}
-
-// OnSent is still required by the Actor interface for backward compatibility
-// but can be empty if using the functional option
-func (a *MinimalActor) OnSent(dv *tok.Device, data []byte) {
-	// This will not be called if WithHubConfigOnSent is provided
-	slog.Info("MinimalActor.OnSent (fallback)", "dv", &dv, "data", string(data))
 }
 
 func (a *MinimalActor) OnClose(dv *tok.Device) {

@@ -69,11 +69,10 @@ var _ = Describe("BeforeSend Functional Option", func() {
 
 var _ = Describe("OnSent Functional Option", func() {
 	
-	It("should work without OnSent option and use Actor.OnSent", func() {
+	It("should work without OnSent option", func() {
 		hubConfig := tok.NewHubConfig(actor)
 		Ω(hubConfig).ToNot(BeNil())
-		// fnOnSent should be nil, so Actor.OnSent will be used
-		// This test verifies backward compatibility
+		// fnOnSent should be nil, so OnSent functionality is disabled
 	})
 	
 	It("should work with OnSent option", func() {

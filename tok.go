@@ -25,8 +25,6 @@ type BeforeSendFunc func(dv *Device, data []byte) ([]byte, error)
 type Actor interface {
 	// OnReceive is called whenever the server receives a valid payload.
 	OnReceive(dv *Device, data []byte)
-	// OnSent is called after a message is sent successfully.
-	OnSent(dv *Device, data []byte)
 	// OnClose is called after a connection has been closed.
 	OnClose(dv *Device)
 	// Ping builds the ping payload. If nil is returned, the auto-ping feature is disabled.
