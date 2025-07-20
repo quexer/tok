@@ -354,7 +354,7 @@ func (p *Hub) initConnection(dv *Device, adapter conAdapter) {
 					return
 				}
 				// Use the optional BeforeSend function if provided
-				// invoke ping in every loop
+				// Get fresh ping data for each iteration to ensure the current state of the connection
 				pingData := p.config.actor.Ping()
 				data, err := p.beforeSend(dv, pingData)
 				if err != nil {
