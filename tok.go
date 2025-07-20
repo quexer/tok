@@ -20,6 +20,9 @@ type BeforeReceiveFunc func(dv *Device, data []byte) ([]byte, error)
 // BeforeSendFunc is a function type for preprocessing outgoing data before sending
 type BeforeSendFunc func(dv *Device, data []byte) ([]byte, error)
 
+// AfterSendFunc is the callback after sending data.
+type AfterSendFunc func(*Device, []byte)
+
 // CloseHandler is an interface for handling connection close events
 type CloseHandler interface {
 	// OnClose is called after a connection has been closed
