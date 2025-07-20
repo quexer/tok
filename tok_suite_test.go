@@ -29,10 +29,6 @@ func (p *simpleActor) OnReceive(dv *tok.Device, data []byte) {
 	return
 }
 
-func (p *simpleActor) Ping() []byte {
-	return []byte("pong")
-}
-
 func (p *simpleActor) Bye(kicker *tok.Device, reason string, dv *tok.Device) []byte {
 	return nil
 }
@@ -47,10 +43,13 @@ func (p *trackingActor) OnReceive(dv *tok.Device, data []byte) {
 	return
 }
 
-func (p *trackingActor) Ping() []byte {
-	return []byte("pong")
-}
-
 func (p *trackingActor) Bye(kicker *tok.Device, reason string, dv *tok.Device) []byte {
 	return nil
+}
+
+// Test PingProducer implementations
+type testPingProducer struct{}
+
+func (p *testPingProducer) Ping() []byte {
+	return []byte("pong")
 }

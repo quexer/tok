@@ -8,6 +8,7 @@ import (
 // HubConfig config struct for creating new Hub
 type HubConfig struct {
 	actor              Actor             // actor implement dispatch logic
+	pingProducer       PingProducer      // optional ping producer for auto-ping feature
 	fnBeforeReceive    BeforeReceiveFunc // optional preprocessing function for incoming data
 	fnBeforeSend       BeforeSendFunc    // optional preprocessing function for outgoing data
 	fnAfterSend        func(*Device, []byte) // optional AfterSend callback function
@@ -112,5 +113,12 @@ func WithHubConfigAfterSend(afterSend func(*Device, []byte)) HubConfigOption {
 func WithHubConfigCloseHandler(closeHandler CloseHandler) HubConfigOption {
 	return func(hc *HubConfig) {
 		hc.fnOnClose = closeHandler
+	}
+}
+
+// WithHubConfigPingProducer set optional PingProducer for hub config to enable auto-ping feature.
+func WithHubConfigPingProducer(pingProducer PingProducer) HubConfigOption {
+	return func(hc *HubConfig) {
+		hc.pingProducer = pingProducer
 	}
 }
