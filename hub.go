@@ -286,9 +286,6 @@ func (p *Hub) close(conn *connection) {
 	if p.config.fnOnClose != nil {
 		p.config.fnOnClose.OnClose(conn.dv)
 	}
-	
-	// Call the actor's OnClose method
-	p.config.actor.OnClose(conn.dv)
 }
 
 func (p *Hub) goOnline(conn *connection) {

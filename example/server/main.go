@@ -65,11 +65,6 @@ func (p *simpleActor) OnReceive(dv *tok.Device, data []byte) {
 	return
 }
 
-func (p *simpleActor) OnClose(dv *tok.Device) {
-	slog.Info("OnClose", "dv", &dv)
-	return
-}
-
 func (p *simpleActor) Ping() []byte {
 	slog.Info("Send Ping")
 	return []byte("ping")

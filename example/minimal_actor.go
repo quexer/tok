@@ -15,10 +15,6 @@ func (a *MinimalActor) OnReceive(dv *tok.Device, data []byte) {
 	slog.Info("MinimalActor.OnReceive", "dv", &dv, "data", string(data))
 }
 
-func (a *MinimalActor) OnClose(dv *tok.Device) {
-	slog.Info("MinimalActor.OnClose", "dv", &dv)
-}
-
 func (a *MinimalActor) Ping() []byte {
 	return []byte("ping")
 }
@@ -58,7 +54,7 @@ type CustomCloseHandler struct{}
 func (h *CustomCloseHandler) OnClose(dv *tok.Device) {
 	slog.Info("CustomCloseHandler.OnClose", "dv", &dv)
 	// Add custom close handling logic here
-	// This is called in addition to the Actor's OnClose method
+	// CloseHandler is now the only way to handle close events (Actor.OnClose was removed)
 }
 
 // Example of creating a hub with CloseHandler via functional option

@@ -31,8 +31,6 @@ type CloseHandler interface {
 type Actor interface {
 	// OnReceive is called whenever the server receives a valid payload.
 	OnReceive(dv *Device, data []byte)
-	// OnClose is called after a connection has been closed.
-	OnClose(dv *Device)
 	// Ping builds the ping payload. If nil is returned, the auto-ping feature is disabled.
 	Ping() []byte
 	// Bye builds the payload to notify before a connection is closed for a specific reason.
