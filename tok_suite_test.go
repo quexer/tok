@@ -52,3 +52,15 @@ type testByeGenerator struct{}
 func (b *testByeGenerator) Bye(kicker *tok.Device, reason string, dv *tok.Device) []byte {
 	return []byte("bye")
 }
+
+// Test BeforeSendHandler implementation
+type testBeforeSendHandler struct {
+	transform func(dv *tok.Device, data []byte) ([]byte, error)
+}
+
+func (h *testBeforeSendHandler) BeforeSend(dv *tok.Device, data []byte) ([]byte, error) {
+	if h.transform != nil {
+		return h.transform(dv, data)
+	}
+	return data, nil
+}

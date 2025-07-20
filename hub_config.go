@@ -11,7 +11,7 @@ type HubConfig struct {
 	pingProducer       PingGenerator        // optional server-side ping generator for auto-ping feature
 	byeGenerator       ByeGenerator         // optional bye generator for connection close notifications
 	hdlBeforeReceive   BeforeReceiveHandler // optional preprocessing handler for incoming data
-	fnBeforeSend       BeforeSendFunc       // optional preprocessing function for outgoing data
+	hdlBeforeSend      BeforeSendHandler    // optional preprocessing handler for outgoing data
 	fnAfterSend        AfterSendFunc        // optional AfterSend callback function
 	closeHandler       CloseHandler         // optional CloseHandler for connection close events
 	q                  Queue                // Message Queue, default is memory-based queue. if nil, message to offline user will not be cached
@@ -96,10 +96,10 @@ func WithHubConfigBeforeReceive(hdl BeforeReceiveHandler) HubConfigOption {
 	}
 }
 
-// WithHubConfigBeforeSend set optional BeforeSend function for hub config.
-func WithHubConfigBeforeSend(beforeSend BeforeSendFunc) HubConfigOption {
+// WithHubConfigBeforeSend set optional BeforeSend handler for hub config.
+func WithHubConfigBeforeSend(beforeSend BeforeSendHandler) HubConfigOption {
 	return func(hc *HubConfig) {
-		hc.fnBeforeSend = beforeSend
+		hc.hdlBeforeSend = beforeSend
 	}
 }
 

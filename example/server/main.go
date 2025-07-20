@@ -20,11 +20,8 @@ func main() {
 	// Define the BeforeReceive handler
 	beforeReceiveHandler := &SimpleBeforeReceiveHandler{}
 
-	// Define the BeforeSend function
-	beforeSend := func(dv *tok.Device, data []byte) ([]byte, error) {
-		slog.Info("BeforeSend", "dv", &dv, "data", data)
-		return data, nil
-	}
+	// Define the BeforeSend handler
+	beforeSendHandler := &SimpleBeforeSendHandler{}
 
 	// Define the AfterSend function (use functional option for AfterSend functionality)
 	afterSend := func(dv *tok.Device, data []byte) {
@@ -35,7 +32,7 @@ func main() {
 		tok.WithHubConfigServerPingInterval(2*time.Second),
 		tok.WithHubConfigPingProducer(&SimplePingProducer{}),
 		tok.WithHubConfigBeforeReceive(beforeReceiveHandler),
-		tok.WithHubConfigBeforeSend(beforeSend),
+		tok.WithHubConfigBeforeSend(beforeSendHandler),
 		// Use AfterSend via functional option (AfterSend method is no longer in Actor interface)
 		tok.WithHubConfigAfterSend(afterSend),
 	)
@@ -68,6 +65,14 @@ type SimpleBeforeReceiveHandler struct{}
 
 func (h *SimpleBeforeReceiveHandler) BeforeReceive(dv *tok.Device, data []byte) ([]byte, error) {
 	slog.Info("BeforeReceive", "dv", &dv, "data", data)
+	return data, nil
+}
+
+// SimpleBeforeSendHandler implements BeforeSendHandler interface
+type SimpleBeforeSendHandler struct{}
+
+func (h *SimpleBeforeSendHandler) BeforeSend(dv *tok.Device, data []byte) ([]byte, error) {
+	slog.Info("BeforeSend", "dv", &dv, "data", data)
 	return data, nil
 }
 
