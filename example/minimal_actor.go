@@ -43,7 +43,7 @@ func main() {
 
 	// Example of creating a hub with CloseHandler via functional option
 	ExampleWithCloseHandlerOption()
-	
+
 	// Example of creating a hub with ByeGenerator via functional option
 	ExampleWithByeGeneratorOption()
 }
