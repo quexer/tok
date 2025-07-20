@@ -15,15 +15,18 @@ func (a *MinimalActor) OnReceive(dv *tok.Device, data []byte) {
 	slog.Info("MinimalActor.OnReceive", "dv", &dv, "data", string(data))
 }
 
-func (a *MinimalActor) Bye(kicker *tok.Device, reason string, dv *tok.Device) []byte {
-	return []byte(fmt.Sprintf("bye: %s", reason))
-}
-
 // SimplePingProducer implements the PingGenerator interface
 type SimplePingProducer struct{}
 
 func (p *SimplePingProducer) Ping() []byte {
 	return []byte("ping")
+}
+
+// SimpleByeGenerator implements the ByeGenerator interface
+type SimpleByeGenerator struct{}
+
+func (b *SimpleByeGenerator) Bye(kicker *tok.Device, reason string, dv *tok.Device) []byte {
+	return []byte(fmt.Sprintf("bye: %s", reason))
 }
 
 func main() {
@@ -32,6 +35,9 @@ func main() {
 
 	// Example of creating a hub with CloseHandler via functional option
 	ExampleWithCloseHandlerOption()
+	
+	// Example of creating a hub with ByeGenerator via functional option
+	ExampleWithByeGeneratorOption()
 }
 
 // Example of creating a hub with AfterSend via functional option
@@ -74,4 +80,19 @@ func ExampleWithCloseHandlerOption() {
 	// Use config to create hub
 	_ = config
 	slog.Info("Hub configuration created with CloseHandler functional option")
+}
+
+// Example of creating a hub with ByeGenerator via functional option
+func ExampleWithByeGeneratorOption() {
+	// Create a bye generator
+	byeGenerator := &SimpleByeGenerator{}
+
+	config := tok.NewHubConfig(&MinimalActor{},
+		tok.WithHubConfigPingProducer(&SimplePingProducer{}),
+		tok.WithHubConfigByeGenerator(byeGenerator),
+	)
+
+	// Use config to create hub
+	_ = config
+	slog.Info("Hub configuration created with ByeGenerator functional option")
 }

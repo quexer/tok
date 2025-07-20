@@ -9,6 +9,7 @@ import (
 type HubConfig struct {
 	actor              Actor                 // actor implement dispatch logic
 	pingProducer       PingGenerator         // optional ping producer for auto-ping feature
+	byeGenerator       ByeGenerator          // optional bye generator for connection close notifications
 	fnBeforeReceive    BeforeReceiveFunc     // optional preprocessing function for incoming data
 	fnBeforeSend       BeforeSendFunc        // optional preprocessing function for outgoing data
 	fnAfterSend        func(*Device, []byte) // optional AfterSend callback function
@@ -121,5 +122,13 @@ func WithHubConfigCloseHandler(closeHandler CloseHandler) HubConfigOption {
 func WithHubConfigPingProducer(pingProducer PingGenerator) HubConfigOption {
 	return func(hc *HubConfig) {
 		hc.pingProducer = pingProducer
+	}
+}
+
+// WithHubConfigByeGenerator set optional ByeGenerator for hub config to enable bye message generation.
+// if this is not set, no bye messages will be sent when closing connections.
+func WithHubConfigByeGenerator(byeGenerator ByeGenerator) HubConfigOption {
+	return func(hc *HubConfig) {
+		hc.byeGenerator = byeGenerator
 	}
 }

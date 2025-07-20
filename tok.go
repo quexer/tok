@@ -32,11 +32,15 @@ type PingGenerator interface {
 	Ping() []byte
 }
 
+// ByeGenerator is an interface for generating bye payloads
+type ByeGenerator interface {
+	// Bye builds the payload to notify before a connection is closed for a specific reason.
+	Bye(kicker *Device, reason string, dv *Device) []byte
+}
+
 // Actor should be implemented by applications to interact with tok.
 // Each method provides a hook for handling device communication events.
 type Actor interface {
 	// OnReceive is called whenever the server receives a valid payload.
 	OnReceive(dv *Device, data []byte)
-	// Bye builds the payload to notify before a connection is closed for a specific reason.
-	Bye(kicker *Device, reason string, dv *Device) []byte
 }
