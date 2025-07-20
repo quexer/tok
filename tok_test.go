@@ -125,6 +125,86 @@ func (h *testCloseHandler) OnClose(dv *tok.Device) {
 	h.lastDevice = dv
 }
 
+var _ = Describe("PingProducer Functional Option", func() {
+	
+	It("should work without PingProducer option", func() {
+		hubConfig := tok.NewHubConfig(actor)
+		Ω(hubConfig).ToNot(BeNil())
+		// pingProducer should be nil, so ping functionality is disabled
+	})
+	
+	It("should work with PingProducer option", func() {
+		pingProducer := &testPingProducer{}
+		
+		hubConfig := tok.NewHubConfig(actor, tok.WithHubConfigPingProducer(pingProducer))
+		Ω(hubConfig).ToNot(BeNil())
+		
+		// Basic verification that the config was created successfully
+		// The actual functionality is tested through integration
+	})
+	
+	It("should accept nil PingProducer", func() {
+		hubConfig := tok.NewHubConfig(actor, tok.WithHubConfigPingProducer(nil))
+		Ω(hubConfig).ToNot(BeNil())
+	})
+	
+	It("should work with multiple functional options including PingProducer", func() {
+		pingProducer := &testPingProducer{}
+		
+		afterSendFunc := func(dv *tok.Device, data []byte) {
+			// Do nothing, just verify it can be configured
+		}
+		
+		hubConfig := tok.NewHubConfig(actor, 
+			tok.WithHubConfigPingProducer(pingProducer),
+			tok.WithHubConfigAfterSend(afterSendFunc),
+			tok.WithHubConfigSso(false),
+		)
+		Ω(hubConfig).ToNot(BeNil())
+	})
+	
+})
+
+var _ = Describe("PingProducer Functional Option", func() {
+	
+	It("should work without PingProducer option", func() {
+		hubConfig := tok.NewHubConfig(actor)
+		Ω(hubConfig).ToNot(BeNil())
+		// pingProducer should be nil, so ping functionality is disabled
+	})
+	
+	It("should work with PingProducer option", func() {
+		pingProducer := &testPingProducer{}
+		
+		hubConfig := tok.NewHubConfig(actor, tok.WithHubConfigPingProducer(pingProducer))
+		Ω(hubConfig).ToNot(BeNil())
+		
+		// Basic verification that the config was created successfully
+		// The actual functionality is tested through integration
+	})
+	
+	It("should accept nil PingProducer", func() {
+		hubConfig := tok.NewHubConfig(actor, tok.WithHubConfigPingProducer(nil))
+		Ω(hubConfig).ToNot(BeNil())
+	})
+	
+	It("should work with multiple functional options including PingProducer", func() {
+		pingProducer := &testPingProducer{}
+		
+		afterSendFunc := func(dv *tok.Device, data []byte) {
+			// Do nothing, just verify it can be configured
+		}
+		
+		hubConfig := tok.NewHubConfig(actor, 
+			tok.WithHubConfigPingProducer(pingProducer),
+			tok.WithHubConfigAfterSend(afterSendFunc),
+			tok.WithHubConfigSso(false),
+		)
+		Ω(hubConfig).ToNot(BeNil())
+	})
+	
+})
+
 var _ = Describe("CloseHandler Functional Option", func() {
 	
 	It("should work without CloseHandler option", func() {

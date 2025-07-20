@@ -36,6 +36,7 @@ func main() {
 	
 	hc := tok.NewHubConfig(&simpleActor{},
 		tok.WithHubConfigServerPingInterval(2*time.Second),
+		tok.WithHubConfigPingProducer(&SimplePingProducer{}),
 		tok.WithHubConfigBeforeReceive(beforeReceive),
 		tok.WithHubConfigBeforeSend(beforeSend),
 		// Use AfterSend via functional option (AfterSend method is no longer in Actor interface)
@@ -65,11 +66,14 @@ func (p *simpleActor) OnReceive(dv *tok.Device, data []byte) {
 	return
 }
 
-func (p *simpleActor) Ping() []byte {
-	slog.Info("Send Ping")
-	return []byte("ping")
-}
-
 func (p *simpleActor) Bye(kicker *tok.Device, reason string, dv *tok.Device) []byte {
 	return nil
+}
+
+// SimplePingProducer implements PingProducer interface
+type SimplePingProducer struct{}
+
+func (p *SimplePingProducer) Ping() []byte {
+	slog.Info("Send Ping")
+	return []byte("ping")
 }
