@@ -73,7 +73,8 @@ type WsHandler struct {
 	auth      WsAuthFunc // auth function is used for user authorization
 }
 
-func (p *WsHandler) Handler() websocket.Handler {
+// hdlFromXwebSocket returns an x/web/websocket handler function that handles incoming websocket connections.
+func (p *WsHandler) hdlFromXwebSocket() websocket.Handler {
 	return func(ws *websocket.Conn) {
 		adapter := &xWsAdapter{
 			conn:         ws,
@@ -113,7 +114,7 @@ func CreateWsHandler(auth WsAuthFunc, opts ...WsHandlerOption) (*Hub, http.Handl
 		log.Fatal("hub is needed")
 	}
 
-	return wsh.hub, wsh.Handler()
+	return wsh.hub, wsh.hdlFromXwebSocket()
 }
 
 // WsAuthFunc websocket auth function, return Device interface
