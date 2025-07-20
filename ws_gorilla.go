@@ -23,11 +23,6 @@ func (p *gorillaWsAdapter) Read() ([]byte, error) {
 		}
 	}
 
-	if p.txt {
-		_, data, err := p.conn.ReadMessage()
-		return data, err
-	}
-
 	_, data, err := p.conn.ReadMessage()
 	return data, err
 }

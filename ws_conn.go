@@ -27,7 +27,7 @@ type xWsAdapter struct {
 func (p *xWsAdapter) Read() ([]byte, error) {
 	if p.readTimeout > 0 {
 		if err := p.conn.SetReadDeadline(time.Now().Add(p.readTimeout)); err != nil {
-			return nil, fmt.Errorf("setting ws read deadline err: %w", err)
+			return nil, fmt.Errorf("setting x ws read deadline err: %w", err)
 		}
 	}
 
@@ -45,7 +45,7 @@ func (p *xWsAdapter) Read() ([]byte, error) {
 
 func (p *xWsAdapter) Write(b []byte) error {
 	if err := p.conn.SetWriteDeadline(time.Now().Add(p.writeTimeout)); err != nil {
-		return fmt.Errorf("setting ws write deadline failed: %w", err)
+		return fmt.Errorf("setting x ws write deadline failed: %w", err)
 	}
 
 	if p.txt {
