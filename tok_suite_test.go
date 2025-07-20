@@ -42,9 +42,9 @@ func (p *simpleActor) Bye(kicker *tok.Device, reason string, dv *tok.Device) []b
 }
 
 type trackingActor struct {
-	OnSentCalled bool
-	OnSentDevice *tok.Device
-	OnSentData   []byte
+	AfterSendCalled bool
+	AfterSendDevice *tok.Device
+	AfterSendData   []byte
 }
 
 func (p *trackingActor) OnReceive(dv *tok.Device, data []byte) {
