@@ -29,10 +29,17 @@ func main() {
 		return data, nil
 	}
 	
+	// Define the OnSent function (use functional option for OnSent functionality)
+	onSent := func(dv *tok.Device, data []byte) {
+	    slog.Info("OnSent via functional option", "dv", &dv, "data", data)
+	}
+	
 	hc := tok.NewHubConfig(&simpleActor{},
 		tok.WithHubConfigServerPingInterval(2*time.Second),
 		tok.WithHubConfigBeforeReceive(beforeReceive),
 		tok.WithHubConfigBeforeSend(beforeSend),
+		// Use OnSent via functional option (OnSent method is no longer in Actor interface)
+		tok.WithHubConfigOnSent(onSent),
 	)
 
 	authFunc := func(r *http.Request) (*tok.Device, error) {
@@ -55,11 +62,6 @@ type simpleActor struct {
 
 func (p *simpleActor) OnReceive(dv *tok.Device, data []byte) {
 	slog.Info("OnReceive", "dv", &dv, "data", data)
-	return
-}
-
-func (p *simpleActor) OnSent(dv *tok.Device, data []byte) {
-	slog.Info("OnSent", "dv", &dv, "data", data)
 	return
 }
 

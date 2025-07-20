@@ -66,3 +66,50 @@ var _ = Describe("BeforeSend Functional Option", func() {
 	})
 	
 })
+
+var _ = Describe("OnSent Functional Option", func() {
+	
+	It("should work without OnSent option", func() {
+		hubConfig := tok.NewHubConfig(actor)
+		Ω(hubConfig).ToNot(BeNil())
+		// fnOnSent should be nil, so OnSent functionality is disabled
+	})
+	
+	It("should work with OnSent option", func() {
+		var onSentCalled bool
+		
+		onSentFunc := func(dv *tok.Device, data []byte) {
+			onSentCalled = true
+		}
+		
+		hubConfig := tok.NewHubConfig(actor, tok.WithHubConfigOnSent(onSentFunc))
+		Ω(hubConfig).ToNot(BeNil())
+		
+		// Basic verification that the config was created successfully
+		// The actual functionality is tested through integration
+		Ω(onSentCalled).To(BeFalse()) // Not called yet
+	})
+	
+	It("should accept nil OnSent function", func() {
+		hubConfig := tok.NewHubConfig(actor, tok.WithHubConfigOnSent(nil))
+		Ω(hubConfig).ToNot(BeNil())
+	})
+	
+	It("should work with multiple functional options including OnSent", func() {
+		onSentFunc := func(dv *tok.Device, data []byte) {
+			// Do nothing, just verify it can be configured
+		}
+		
+		beforeReceiveFunc := func(dv *tok.Device, data []byte) ([]byte, error) {
+			return data, nil
+		}
+		
+		hubConfig := tok.NewHubConfig(actor, 
+			tok.WithHubConfigOnSent(onSentFunc),
+			tok.WithHubConfigBeforeReceive(beforeReceiveFunc),
+			tok.WithHubConfigSso(false),
+		)
+		Ω(hubConfig).ToNot(BeNil())
+	})
+	
+})
