@@ -24,3 +24,10 @@ func WithWsHandlerHubConfig(hc *HubConfig) WsHandlerOption {
 		h.hubConfig = hc
 	}
 }
+
+// WithWsHandlerGorilla set whether to use Gorilla WebSocket instead of x/net/websocket
+func WithWsHandlerGorilla(useGorilla bool) WsHandlerOption {
+	return func(h *WsHandler) {
+		h.useGorilla = useGorilla
+	}
+}

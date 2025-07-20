@@ -27,4 +27,15 @@ var _ = Describe("WsConn", func() {
 		Ω(hub).ToNot(BeNil())
 		Ω(hdl).ToNot(BeNil())
 	})
+
+	It("CreateWsHandler with Gorilla WebSocket", func() {
+		hub, hdl := tok.CreateWsHandler(auth,
+			tok.WithWsHandlerTxt(true),
+			tok.WithWsHandlerGorilla(true),
+			tok.WithWsHandlerHubConfig(tok.NewHubConfig(actor, 
+				tok.WithHubConfigSso(true),
+				tok.WithHubConfigPingProducer(&testPingGenerator{}))))
+		Ω(hub).ToNot(BeNil())
+		Ω(hdl).ToNot(BeNil())
+	})
 })
