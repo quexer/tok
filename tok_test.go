@@ -255,7 +255,8 @@ var _ = Describe("CloseHandler Functional Option", func() {
 
 		hub, handler := tok.CreateWsHandler(auth,
 			tok.WithWsHandlerHubConfig(tok.NewHubConfig(actorHandler,
-				tok.WithHubConfigCloseHandler(closeHandler))))
+				tok.WithHubConfigCloseHandler(closeHandler),
+				tok.WithHubConfigPingProducer(&testPingGenerator{}))))
 
 		Ω(hub).ToNot(BeNil())
 		Ω(handler).ToNot(BeNil())
@@ -265,6 +266,46 @@ var _ = Describe("CloseHandler Functional Option", func() {
 
 		// This test verifies that the handler configuration is set up correctly
 		// The actual close behavior would be tested in a full integration test with a real connection
+	})
+
+})
+
+var _ = Describe("ByeGenerator Functional Option", func() {
+
+	It("should work without ByeGenerator option", func() {
+		hubConfig := tok.NewHubConfig(actor)
+		Ω(hubConfig).ToNot(BeNil())
+		// byeGenerator should be nil, so bye functionality is disabled
+	})
+
+	It("should work with ByeGenerator option", func() {
+		byeGenerator := &testByeGenerator{}
+
+		hubConfig := tok.NewHubConfig(actor, tok.WithHubConfigByeGenerator(byeGenerator))
+		Ω(hubConfig).ToNot(BeNil())
+
+		// Basic verification that the config was created successfully
+		// The actual functionality is tested through integration
+	})
+
+	It("should accept nil ByeGenerator", func() {
+		hubConfig := tok.NewHubConfig(actor, tok.WithHubConfigByeGenerator(nil))
+		Ω(hubConfig).ToNot(BeNil())
+	})
+
+	It("should work with multiple functional options including ByeGenerator", func() {
+		byeGenerator := &testByeGenerator{}
+
+		afterSendFunc := func(dv *tok.Device, data []byte) {
+			// Do nothing, just verify it can be configured
+		}
+
+		hubConfig := tok.NewHubConfig(actor,
+			tok.WithHubConfigByeGenerator(byeGenerator),
+			tok.WithHubConfigAfterSend(afterSendFunc),
+			tok.WithHubConfigSso(false),
+		)
+		Ω(hubConfig).ToNot(BeNil())
 	})
 
 })

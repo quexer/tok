@@ -66,10 +66,6 @@ func (p *simpleActor) OnReceive(dv *tok.Device, data []byte) {
 	return
 }
 
-func (p *simpleActor) Bye(kicker *tok.Device, reason string, dv *tok.Device) []byte {
-	return nil
-}
-
 // SimplePingProducer implements PingGenerator interface
 type SimplePingProducer struct{}
 

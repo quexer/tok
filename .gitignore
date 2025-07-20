@@ -24,3 +24,5 @@ _testmain.go
 .idea
 example/server/server
 example/client/client
+client
+server

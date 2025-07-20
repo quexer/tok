@@ -262,7 +262,12 @@ func (p *Hub) innerKick(uid interface{}) {
 func (p *Hub) byeThenClose(kicker *Device, conn *connection) {
 	defer p.close(conn)
 
-	byeData := p.config.actor.Bye(kicker, "sso", conn.dv)
+	// Only generate bye message if ByeGenerator is configured
+	if p.config.byeGenerator == nil {
+		return
+	}
+
+	byeData := p.config.byeGenerator.Bye(kicker, "sso", conn.dv)
 	if byeData == nil {
 		return
 	}

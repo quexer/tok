@@ -29,10 +29,6 @@ func (p *simpleActor) OnReceive(dv *tok.Device, data []byte) {
 	return
 }
 
-func (p *simpleActor) Bye(kicker *tok.Device, reason string, dv *tok.Device) []byte {
-	return nil
-}
-
 type trackingActor struct {
 	AfterSendCalled bool
 	AfterSendDevice *tok.Device
@@ -43,13 +39,16 @@ func (p *trackingActor) OnReceive(dv *tok.Device, data []byte) {
 	return
 }
 
-func (p *trackingActor) Bye(kicker *tok.Device, reason string, dv *tok.Device) []byte {
-	return nil
-}
-
 // Test PingGenerator implementations
 type testPingGenerator struct{}
 
 func (p *testPingGenerator) Ping() []byte {
 	return []byte("ping")
+}
+
+// Test ByeGenerator implementations
+type testByeGenerator struct{}
+
+func (b *testByeGenerator) Bye(kicker *tok.Device, reason string, dv *tok.Device) []byte {
+	return []byte("bye")
 }
