@@ -10,7 +10,8 @@ type HubConfig struct {
 	actor              Actor             // actor implement dispatch logic
 	fnBeforeReceive    BeforeReceiveFunc // optional preprocessing function for incoming data
 	fnBeforeSend       BeforeSendFunc    // optional preprocessing function for outgoing data
-	fnOnSent           func(*Device, []byte) // optional OnSent callback function
+	fnAfterSend        func(*Device, []byte) // optional AfterSend callback function
+	fnOnClose          CloseHandler      // optional CloseHandler for connection close events
 	q                  Queue             // Message Queue, default is memory-based queue. if nil, message to offline user will not be cached
 	sso                bool              // Default true, if it's true, new connection  with same uid will kick off old ones
 	serverPingInterval time.Duration     // Server ping interval, default 30 seconds
@@ -100,9 +101,16 @@ func WithHubConfigBeforeSend(beforeSend BeforeSendFunc) HubConfigOption {
 	}
 }
 
-// WithHubConfigOnSent set optional OnSent callback function for hub config.
-func WithHubConfigOnSent(onSent func(*Device, []byte)) HubConfigOption {
+// WithHubConfigAfterSend set optional AfterSend callback function for hub config.
+func WithHubConfigAfterSend(afterSend func(*Device, []byte)) HubConfigOption {
 	return func(hc *HubConfig) {
-		hc.fnOnSent = onSent
+		hc.fnAfterSend = afterSend
+	}
+}
+
+// WithHubConfigCloseHandler set optional CloseHandler for hub config.
+func WithHubConfigCloseHandler(closeHandler CloseHandler) HubConfigOption {
+	return func(hc *HubConfig) {
+		hc.fnOnClose = closeHandler
 	}
 }

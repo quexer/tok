@@ -222,7 +222,7 @@ func (p *Hub) down(f *downFrame, conns []*connection) {
 			continue
 		}
 
-		if fn := p.config.fnOnSent; fn != nil {
+		if fn := p.config.fnAfterSend; fn != nil {
 			go fn(con.dv, f.data)
 		}
 	}
@@ -273,7 +273,11 @@ func (p *Hub) byeThenClose(kicker *Device, conn *connection) {
 
 func (p *Hub) close(conn *connection) {
 	conn.close()
-	p.config.actor.OnClose(conn.dv)
+	
+	// Call the optional close handler if configured
+	if p.config.fnOnClose != nil {
+		p.config.fnOnClose.OnClose(conn.dv)
+	}
 }
 
 func (p *Hub) goOnline(conn *connection) {

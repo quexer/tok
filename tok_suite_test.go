@@ -29,10 +29,6 @@ func (p *simpleActor) OnReceive(dv *tok.Device, data []byte) {
 	return
 }
 
-func (p *simpleActor) OnClose(dv *tok.Device) {
-	return
-}
-
 func (p *simpleActor) Ping() []byte {
 	return []byte("pong")
 }
@@ -42,16 +38,12 @@ func (p *simpleActor) Bye(kicker *tok.Device, reason string, dv *tok.Device) []b
 }
 
 type trackingActor struct {
-	OnSentCalled bool
-	OnSentDevice *tok.Device
-	OnSentData   []byte
+	AfterSendCalled bool
+	AfterSendDevice *tok.Device
+	AfterSendData   []byte
 }
 
 func (p *trackingActor) OnReceive(dv *tok.Device, data []byte) {
-	return
-}
-
-func (p *trackingActor) OnClose(dv *tok.Device) {
 	return
 }
 
