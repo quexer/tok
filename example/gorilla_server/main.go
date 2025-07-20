@@ -42,7 +42,7 @@ func main() {
 	// Create WebSocket handler using Gorilla WebSocket
 	hub, hdl = tok.CreateWsHandler(authFunc,
 		tok.WithWsHandlerHubConfig(hc),
-		tok.WithWsHandlerGorilla(true)) // Use Gorilla WebSocket
+		tok.WithWsHandlerEngine(tok.WsEngineGorilla)) // Use Gorilla WebSocket
 
 	http.Handle("/ws", hdl)
 

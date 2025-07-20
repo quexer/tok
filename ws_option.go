@@ -4,8 +4,8 @@ package tok
 type WsEngine int
 
 const (
-	// WsEngineXNet uses golang.org/x/net/websocket (default)
-	WsEngineXNet WsEngine = iota
+	// WsEngineX uses golang.org/x/net/websocket (default)
+	WsEngineX WsEngine = iota
 	// WsEngineGorilla uses github.com/gorilla/websocket
 	WsEngineGorilla
 	// Future engines can be easily added here, e.g.:
@@ -15,7 +15,7 @@ const (
 
 type WsHandlerOption func(*WsHandler)
 
-// WithWsHandlerTxt set txt for ws handler
+// WithWsHandlerTxt set txt mode for ws handler
 func WithWsHandlerTxt(txt bool) WsHandlerOption {
 	return func(h *WsHandler) {
 		h.txt = txt
@@ -42,17 +42,5 @@ func WithWsHandlerHubConfig(hc *HubConfig) WsHandlerOption {
 func WithWsHandlerEngine(engine WsEngine) WsHandlerOption {
 	return func(h *WsHandler) {
 		h.engine = engine
-	}
-}
-
-// WithWsHandlerGorilla set whether to use Gorilla WebSocket instead of x/net/websocket
-// Deprecated: Use WithWsHandlerEngine(WsEngineGorilla) or WithWsHandlerEngine(WsEngineXNet) instead
-func WithWsHandlerGorilla(useGorilla bool) WsHandlerOption {
-	return func(h *WsHandler) {
-		if useGorilla {
-			h.engine = WsEngineGorilla
-		} else {
-			h.engine = WsEngineXNet
-		}
 	}
 }

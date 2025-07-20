@@ -133,7 +133,7 @@ func CreateWsHandler(auth WsAuthFunc, opts ...WsHandlerOption) (*Hub, http.Handl
 		hubConfig: nil,
 		txt:       true,
 		auth:      auth,
-		engine:    WsEngineXNet, // Default to x/net/websocket for backward compatibility
+		engine:    WsEngineX, // Default to x/net/websocket for backward compatibility
 	}
 
 	for _, opt := range opts {
@@ -151,7 +151,7 @@ func CreateWsHandler(auth WsAuthFunc, opts ...WsHandlerOption) (*Hub, http.Handl
 	switch wsh.engine {
 	case WsEngineGorilla:
 		return wsh.hub, wsh.hdlFromGorillaWebSocket()
-	case WsEngineXNet:
+	case WsEngineX:
 		fallthrough
 	default:
 		return wsh.hub, wsh.hdlFromXwebSocket()

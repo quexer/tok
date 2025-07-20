@@ -31,7 +31,7 @@ var _ = Describe("WsConn", func() {
 	It("CreateWsHandler with Gorilla WebSocket", func() {
 		hub, hdl := tok.CreateWsHandler(auth,
 			tok.WithWsHandlerTxt(true),
-			tok.WithWsHandlerGorilla(true),
+			tok.WithWsHandlerEngine(tok.WsEngineGorilla),
 			tok.WithWsHandlerHubConfig(tok.NewHubConfig(actor,
 				tok.WithHubConfigSso(true),
 				tok.WithHubConfigPingProducer(&testPingGenerator{}))))
@@ -42,7 +42,7 @@ var _ = Describe("WsConn", func() {
 	It("CreateWsHandler with Engine enum - XNet", func() {
 		hub, hdl := tok.CreateWsHandler(auth,
 			tok.WithWsHandlerTxt(true),
-			tok.WithWsHandlerEngine(tok.WsEngineXNet),
+			tok.WithWsHandlerEngine(tok.WsEngineX),
 			tok.WithWsHandlerHubConfig(tok.NewHubConfig(actor,
 				tok.WithHubConfigSso(true),
 				tok.WithHubConfigPingProducer(&testPingGenerator{}))))
