@@ -44,3 +44,31 @@ func (p *simpleActor) Ping() []byte {
 func (p *simpleActor) Bye(kicker *tok.Device, reason string, dv *tok.Device) []byte {
 	return nil
 }
+
+type trackingActor struct {
+	OnSentCalled bool
+	OnSentDevice *tok.Device
+	OnSentData   []byte
+}
+
+func (p *trackingActor) OnReceive(dv *tok.Device, data []byte) {
+	return
+}
+
+func (p *trackingActor) OnSent(dv *tok.Device, data []byte) {
+	p.OnSentCalled = true
+	p.OnSentDevice = dv
+	p.OnSentData = data
+}
+
+func (p *trackingActor) OnClose(dv *tok.Device) {
+	return
+}
+
+func (p *trackingActor) Ping() []byte {
+	return []byte("pong")
+}
+
+func (p *trackingActor) Bye(kicker *tok.Device, reason string, dv *tok.Device) []byte {
+	return nil
+}

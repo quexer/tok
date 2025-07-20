@@ -225,7 +225,11 @@ func (p *Hub) down(f *downFrame, conns []*connection) {
 			f.chErr <- err
 			continue
 		}
-		go p.config.actor.OnSent(con.dv, f.data)
+		if p.config.fnOnSent != nil {
+			go p.config.fnOnSent(con.dv, f.data)
+		} else {
+			go p.config.actor.OnSent(con.dv, f.data)
+		}
 	}
 
 }
