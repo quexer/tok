@@ -3,6 +3,7 @@ package tok
 import (
 	"context"
 	"expvar"
+	"log"
 	"log/slog"
 	"time"
 )
@@ -50,11 +51,9 @@ func createHub(config *HubConfig) *Hub {
 	if config.readTimeout > 0 {
 		slog.Info("[tok] read timeout is enabled, make sure it's greater than your client ping interval. otherwise you'll get read timeout err")
 	} else {
-		// Only warn if both read timeout and ping are disabled
+		// quit if both read timeout and ping are disabled
 		if config.pingProducer == nil {
-			slog.Warn("[tok] both read timeout and server ping have been disabled, server socket resource leak might happen")
-		} else if config.pingProducer.Ping() == nil {
-			slog.Warn("[tok] ping producer returns nil, server ping is disabled. combined with no read timeout, server socket resource leak might happen")
+			log.Fatalln("[tok] both read timeout and server ping have been disabled, server socket resource leak might happen")
 		}
 	}
 
@@ -283,7 +282,7 @@ func (p *Hub) byeThenClose(kicker *Device, conn *connection) {
 
 func (p *Hub) close(conn *connection) {
 	conn.close()
-	
+
 	// Call the optional close handler if configured
 	if p.config.fnOnClose != nil {
 		p.config.fnOnClose.OnClose(conn.dv)

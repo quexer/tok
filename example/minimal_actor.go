@@ -19,7 +19,7 @@ func (a *MinimalActor) Bye(kicker *tok.Device, reason string, dv *tok.Device) []
 	return []byte(fmt.Sprintf("bye: %s", reason))
 }
 
-// SimplePingProducer implements the PingProducer interface
+// SimplePingProducer implements the PingGenerator interface
 type SimplePingProducer struct{}
 
 func (p *SimplePingProducer) Ping() []byte {
@@ -29,7 +29,7 @@ func (p *SimplePingProducer) Ping() []byte {
 func main() {
 	// Example of creating a hub with AfterSend via functional option
 	ExampleWithAfterSendOption()
-	
+
 	// Example of creating a hub with CloseHandler via functional option
 	ExampleWithCloseHandlerOption()
 }

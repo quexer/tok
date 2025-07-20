@@ -7,18 +7,18 @@ import (
 
 // HubConfig config struct for creating new Hub
 type HubConfig struct {
-	actor              Actor             // actor implement dispatch logic
-	pingProducer       PingProducer      // optional ping producer for auto-ping feature
-	fnBeforeReceive    BeforeReceiveFunc // optional preprocessing function for incoming data
-	fnBeforeSend       BeforeSendFunc    // optional preprocessing function for outgoing data
+	actor              Actor                 // actor implement dispatch logic
+	pingProducer       PingGenerator         // optional ping producer for auto-ping feature
+	fnBeforeReceive    BeforeReceiveFunc     // optional preprocessing function for incoming data
+	fnBeforeSend       BeforeSendFunc        // optional preprocessing function for outgoing data
 	fnAfterSend        func(*Device, []byte) // optional AfterSend callback function
-	fnOnClose          CloseHandler      // optional CloseHandler for connection close events
-	q                  Queue             // Message Queue, default is memory-based queue. if nil, message to offline user will not be cached
-	sso                bool              // Default true, if it's true, new connection  with same uid will kick off old ones
-	serverPingInterval time.Duration     // Server ping interval, default 30 seconds
-	authTimeout        time.Duration     // Auth timeout duration, default 5s
-	writeTimeout       time.Duration     // Write timeout duration, default 1m
-	readTimeout        time.Duration     // Read timeout duration, default 0s, means no read timeout
+	fnOnClose          CloseHandler          // optional CloseHandler for connection close events
+	q                  Queue                 // Message Queue, default is memory-based queue. if nil, message to offline user will not be cached
+	sso                bool                  // Default true, if it's true, new connection  with same uid will kick off old ones
+	serverPingInterval time.Duration         // Server ping interval, default 30 seconds
+	authTimeout        time.Duration         // Auth timeout duration, default 5s
+	writeTimeout       time.Duration         // Write timeout duration, default 1m
+	readTimeout        time.Duration         // Read timeout duration, default 0s, means no read timeout
 }
 
 // NewHubConfig create new HubConfig
@@ -116,8 +116,9 @@ func WithHubConfigCloseHandler(closeHandler CloseHandler) HubConfigOption {
 	}
 }
 
-// WithHubConfigPingProducer set optional PingProducer for hub config to enable auto-ping feature.
-func WithHubConfigPingProducer(pingProducer PingProducer) HubConfigOption {
+// WithHubConfigPingProducer set optional PingGenerator for hub config to enable auto-server-ping feature.
+// if this is not set, server-ping feature is disabled.
+func WithHubConfigPingProducer(pingProducer PingGenerator) HubConfigOption {
 	return func(hc *HubConfig) {
 		hc.pingProducer = pingProducer
 	}

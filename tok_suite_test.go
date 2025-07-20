@@ -47,9 +47,9 @@ func (p *trackingActor) Bye(kicker *tok.Device, reason string, dv *tok.Device) [
 	return nil
 }
 
-// Test PingProducer implementations
-type testPingProducer struct{}
+// Test PingGenerator implementations
+type testPingGenerator struct{}
 
-func (p *testPingProducer) Ping() []byte {
-	return []byte("pong")
+func (p *testPingGenerator) Ping() []byte {
+	return []byte("ping")
 }

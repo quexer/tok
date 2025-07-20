@@ -26,9 +26,9 @@ type CloseHandler interface {
 	OnClose(dv *Device)
 }
 
-// PingProducer is an interface for generating ping payloads
-type PingProducer interface {
-	// Ping builds the ping payload. If nil is returned, the auto-ping feature is disabled.
+// PingGenerator is an interface for generating ping payloads
+type PingGenerator interface {
+	// Ping generate server-ping payload
 	Ping() []byte
 }
 

@@ -16,24 +16,24 @@ var (
 
 func main() {
 	var hdl http.Handler
-	
+
 	// Define the BeforeReceive function
 	beforeReceive := func(dv *tok.Device, data []byte) ([]byte, error) {
 		slog.Info("BeforeReceive", "dv", &dv, "data", data)
 		return data, nil
 	}
-	
+
 	// Define the BeforeSend function
 	beforeSend := func(dv *tok.Device, data []byte) ([]byte, error) {
 		slog.Info("BeforeSend", "dv", &dv, "data", data)
 		return data, nil
 	}
-	
+
 	// Define the AfterSend function (use functional option for AfterSend functionality)
 	afterSend := func(dv *tok.Device, data []byte) {
-	    slog.Info("AfterSend via functional option", "dv", &dv, "data", data)
+		slog.Info("AfterSend via functional option", "dv", &dv, "data", data)
 	}
-	
+
 	hc := tok.NewHubConfig(&simpleActor{},
 		tok.WithHubConfigServerPingInterval(2*time.Second),
 		tok.WithHubConfigPingProducer(&SimplePingProducer{}),
@@ -70,7 +70,7 @@ func (p *simpleActor) Bye(kicker *tok.Device, reason string, dv *tok.Device) []b
 	return nil
 }
 
-// SimplePingProducer implements PingProducer interface
+// SimplePingProducer implements PingGenerator interface
 type SimplePingProducer struct{}
 
 func (p *SimplePingProducer) Ping() []byte {
