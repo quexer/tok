@@ -15,18 +15,21 @@ func (a *MinimalActor) OnReceive(dv *tok.Device, data []byte) {
 	slog.Info("MinimalActor.OnReceive", "dv", &dv, "data", string(data))
 }
 
-func (a *MinimalActor) Ping() []byte {
-	return []byte("ping")
-}
-
 func (a *MinimalActor) Bye(kicker *tok.Device, reason string, dv *tok.Device) []byte {
 	return []byte(fmt.Sprintf("bye: %s", reason))
+}
+
+// SimplePingProducer implements the PingGenerator interface
+type SimplePingProducer struct{}
+
+func (p *SimplePingProducer) Ping() []byte {
+	return []byte("ping")
 }
 
 func main() {
 	// Example of creating a hub with AfterSend via functional option
 	ExampleWithAfterSendOption()
-	
+
 	// Example of creating a hub with CloseHandler via functional option
 	ExampleWithCloseHandlerOption()
 }
@@ -40,6 +43,7 @@ func ExampleWithAfterSendOption() {
 	}
 
 	config := tok.NewHubConfig(&MinimalActor{},
+		tok.WithHubConfigPingProducer(&SimplePingProducer{}),
 		tok.WithHubConfigAfterSend(afterSendFunc),
 	)
 
@@ -63,6 +67,7 @@ func ExampleWithCloseHandlerOption() {
 	closeHandler := &CustomCloseHandler{}
 
 	config := tok.NewHubConfig(&MinimalActor{},
+		tok.WithHubConfigPingProducer(&SimplePingProducer{}),
 		tok.WithHubConfigCloseHandler(closeHandler),
 	)
 

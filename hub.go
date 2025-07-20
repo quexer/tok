@@ -51,7 +51,8 @@ func createHub(config *HubConfig) *Hub {
 	if config.readTimeout > 0 {
 		slog.Info("[tok] read timeout is enabled, make sure it's greater than your client ping interval. otherwise you'll get read timeout err")
 	} else {
-		if config.actor.Ping() == nil {
+		// quit if both read timeout and ping are disabled
+		if config.pingProducer == nil {
 			log.Fatalln("[tok] both read timeout and server ping have been disabled, server socket resource leak might happen")
 		}
 	}
@@ -273,7 +274,7 @@ func (p *Hub) byeThenClose(kicker *Device, conn *connection) {
 
 func (p *Hub) close(conn *connection) {
 	conn.close()
-	
+
 	// Call the optional close handler if configured
 	if p.config.fnOnClose != nil {
 		p.config.fnOnClose.OnClose(conn.dv)
@@ -341,7 +342,7 @@ func (p *Hub) initConnection(dv *Device, adapter conAdapter) {
 	p.stateChange(conn, true)
 
 	// start server ping loop if necessary
-	if p.config.actor.Ping() != nil {
+	if p.config.pingProducer != nil {
 		ticker := time.NewTicker(p.config.serverPingInterval)
 		go func() {
 			for range ticker.C {
@@ -351,7 +352,7 @@ func (p *Hub) initConnection(dv *Device, adapter conAdapter) {
 				}
 				// Use the optional BeforeSend function if provided
 				// Get fresh ping data for each iteration to ensure the current state of the connection
-				pingData := p.config.actor.Ping()
+				pingData := p.config.pingProducer.Ping()
 				data, err := p.beforeSend(dv, pingData)
 				if err != nil {
 					slog.Warn("[tok] before send ping failed", "err", err)
