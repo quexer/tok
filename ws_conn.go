@@ -1,5 +1,5 @@
 /**
- * websocket connection adapter
+ * x websocket connection adapter
  */
 
 package tok
@@ -14,14 +14,14 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-type wsAdapter struct {
+type xWsAdapter struct {
 	conn         *websocket.Conn
 	txt          bool
 	writeTimeout time.Duration
 	readTimeout  time.Duration
 }
 
-func (p *wsAdapter) Read() ([]byte, error) {
+func (p *xWsAdapter) Read() ([]byte, error) {
 	if p.readTimeout > 0 {
 		if err := p.conn.SetReadDeadline(time.Now().Add(p.readTimeout)); err != nil {
 			return nil, fmt.Errorf("setting ws read deadline err: %w", err)
@@ -40,7 +40,7 @@ func (p *wsAdapter) Read() ([]byte, error) {
 
 }
 
-func (p *wsAdapter) Write(b []byte) error {
+func (p *xWsAdapter) Write(b []byte) error {
 	if err := p.conn.SetWriteDeadline(time.Now().Add(p.writeTimeout)); err != nil {
 		return fmt.Errorf("setting ws write deadline failed: %w", err)
 	}
@@ -52,16 +52,16 @@ func (p *wsAdapter) Write(b []byte) error {
 	return websocket.Message.Send(p.conn, b)
 }
 
-func (p *wsAdapter) Close() error {
+func (p *xWsAdapter) Close() error {
 	return p.conn.Close()
 }
 
-func (p *wsAdapter) ShareConn(adapter conAdapter) bool {
-	wsAdp, ok := adapter.(*wsAdapter)
+func (p *xWsAdapter) ShareConn(adapter conAdapter) bool {
+	wsAdapter, ok := adapter.(*xWsAdapter)
 	if !ok {
 		return false
 	}
-	return p.conn == wsAdp.conn
+	return p.conn == wsAdapter.conn
 }
 
 type WsHandler struct {
@@ -72,8 +72,8 @@ type WsHandler struct {
 }
 
 func (p *WsHandler) Handler() websocket.Handler {
-	return websocket.Handler(func(ws *websocket.Conn) {
-		adapter := &wsAdapter{
+	return func(ws *websocket.Conn) {
+		adapter := &xWsAdapter{
 			conn:         ws,
 			txt:          p.txt,
 			writeTimeout: p.hubConfig.writeTimeout,
@@ -85,12 +85,12 @@ func (p *WsHandler) Handler() websocket.Handler {
 		} else {
 			p.hub.initConnection(dv, adapter)
 		}
-	})
+	}
 }
 
-// CreateWsHandler create web socket http handler with hub.
+// CreateWsHandler create x websocket http handler
 // auth function is used for user authorization
-// Return http handler
+// Return hub and http handler
 func CreateWsHandler(auth WsAuthFunc, opts ...WsHandlerOption) (*Hub, http.Handler) {
 	wsh := &WsHandler{
 		hub:       nil,
