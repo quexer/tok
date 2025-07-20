@@ -93,8 +93,9 @@ func (p *Hub) run() {
 				// default is f.data
 				data := f.data
 				// Use the optional BeforeReceive handler if provided
-				if handler := p.config.fnBeforeReceive; handler != nil {
-					if b, err := handler.BeforeReceive(f.dv, f.data); err != nil {
+				if hdl := p.config.hdlBeforeReceive; hdl != nil {
+					if b, err := hdl.BeforeReceive(f.dv, f.data); err != nil {
+						slog.Error("before receive failed", "err", err)
 						return
 					} else {
 						data = b

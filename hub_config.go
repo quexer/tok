@@ -7,19 +7,19 @@ import (
 
 // HubConfig config struct for creating new Hub
 type HubConfig struct {
-	actor              Actor             // actor implement dispatch logic
-	pingProducer       PingGenerator     // optional server-side ping generator for auto-ping feature
-	byeGenerator       ByeGenerator      // optional bye generator for connection close notifications
-	fnBeforeReceive    BeforeReceiveHandler // optional preprocessing handler for incoming data
-	fnBeforeSend       BeforeSendFunc    // optional preprocessing function for outgoing data
-	fnAfterSend        AfterSendFunc     // optional AfterSend callback function
-	closeHandler       CloseHandler      // optional CloseHandler for connection close events
-	q                  Queue             // Message Queue, default is memory-based queue. if nil, message to offline user will not be cached
-	sso                bool              // Default true, if it's true, new connection  with same uid will kick off old ones
-	serverPingInterval time.Duration     // Server ping interval, default 30 seconds
-	authTimeout        time.Duration     // Auth timeout duration, default 5s
-	writeTimeout       time.Duration     // Write timeout duration, default 1m
-	readTimeout        time.Duration     // Read timeout duration, default 0s, means no read timeout
+	actor              Actor                // actor implement dispatch logic
+	pingProducer       PingGenerator        // optional server-side ping generator for auto-ping feature
+	byeGenerator       ByeGenerator         // optional bye generator for connection close notifications
+	hdlBeforeReceive   BeforeReceiveHandler // optional preprocessing handler for incoming data
+	fnBeforeSend       BeforeSendFunc       // optional preprocessing function for outgoing data
+	fnAfterSend        AfterSendFunc        // optional AfterSend callback function
+	closeHandler       CloseHandler         // optional CloseHandler for connection close events
+	q                  Queue                // Message Queue, default is memory-based queue. if nil, message to offline user will not be cached
+	sso                bool                 // Default true, if it's true, new connection  with same uid will kick off old ones
+	serverPingInterval time.Duration        // Server ping interval, default 30 seconds
+	authTimeout        time.Duration        // Auth timeout duration, default 5s
+	writeTimeout       time.Duration        // Write timeout duration, default 1m
+	readTimeout        time.Duration        // Read timeout duration, default 0s, means no read timeout
 }
 
 // NewHubConfig create new HubConfig
@@ -90,9 +90,9 @@ func WithHubConfigReadTimeout(timeout time.Duration) HubConfigOption {
 }
 
 // WithHubConfigBeforeReceive set optional BeforeReceive handler for hub config.
-func WithHubConfigBeforeReceive(beforeReceive BeforeReceiveHandler) HubConfigOption {
+func WithHubConfigBeforeReceive(hdl BeforeReceiveHandler) HubConfigOption {
 	return func(hc *HubConfig) {
-		hc.fnBeforeReceive = beforeReceive
+		hc.hdlBeforeReceive = hdl
 	}
 }
 
