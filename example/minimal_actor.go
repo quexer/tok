@@ -29,6 +29,14 @@ func (b *SimpleByeGenerator) Bye(kicker *tok.Device, reason string, dv *tok.Devi
 	return []byte(fmt.Sprintf("bye: %s", reason))
 }
 
+// SimpleAfterSendHandler implements the AfterSendHandler interface
+type SimpleAfterSendHandler struct{}
+
+func (h *SimpleAfterSendHandler) AfterSend(dv *tok.Device, data []byte) {
+	slog.Info("AfterSend via functional option", "dv", &dv, "data", string(data))
+	// Add custom logic here without implementing full Actor
+}
+
 func main() {
 	// Example of creating a hub with AfterSend via functional option
 	ExampleWithAfterSendOption()
@@ -43,14 +51,11 @@ func main() {
 // Example of creating a hub with AfterSend via functional option
 func ExampleWithAfterSendOption() {
 	// Define AfterSend behavior via functional option
-	afterSendFunc := func(dv *tok.Device, data []byte) {
-		slog.Info("AfterSend via functional option", "dv", &dv, "data", string(data))
-		// Add custom logic here without implementing full Actor
-	}
+	afterSendHandler := &SimpleAfterSendHandler{}
 
 	config := tok.NewHubConfig(&MinimalActor{},
 		tok.WithHubConfigPingProducer(&SimplePingProducer{}),
-		tok.WithHubConfigAfterSend(afterSendFunc),
+		tok.WithHubConfigAfterSend(afterSendHandler),
 	)
 
 	// Use config to create hub

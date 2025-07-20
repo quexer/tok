@@ -76,17 +76,19 @@ var _ = Describe("AfterSend Functional Option", func() {
 	It("should work without AfterSend option", func() {
 		hubConfig := tok.NewHubConfig(actor)
 		Ω(hubConfig).ToNot(BeNil())
-		// fnAfterSend should be nil, so AfterSend functionality is disabled
+		// hdlAfterSend should be nil, so AfterSend functionality is disabled
 	})
 
 	It("should work with AfterSend option", func() {
 		var afterSendCalled bool
 
-		afterSendFunc := func(dv *tok.Device, data []byte) {
-			afterSendCalled = true
+		afterSendHandler := &testAfterSendHandler{
+			callback: func(dv *tok.Device, data []byte) {
+				afterSendCalled = true
+			},
 		}
 
-		hubConfig := tok.NewHubConfig(actor, tok.WithHubConfigAfterSend(afterSendFunc))
+		hubConfig := tok.NewHubConfig(actor, tok.WithHubConfigAfterSend(afterSendHandler))
 		Ω(hubConfig).ToNot(BeNil())
 
 		// Basic verification that the config was created successfully
@@ -94,20 +96,22 @@ var _ = Describe("AfterSend Functional Option", func() {
 		Ω(afterSendCalled).To(BeFalse()) // Not called yet
 	})
 
-	It("should accept nil AfterSend function", func() {
+	It("should accept nil AfterSend handler", func() {
 		hubConfig := tok.NewHubConfig(actor, tok.WithHubConfigAfterSend(nil))
 		Ω(hubConfig).ToNot(BeNil())
 	})
 
 	It("should work with multiple functional options including AfterSend", func() {
-		afterSendFunc := func(dv *tok.Device, data []byte) {
-			// Do nothing, just verify it can be configured
+		afterSendHandler := &testAfterSendHandler{
+			callback: func(dv *tok.Device, data []byte) {
+				// Do nothing, just verify it can be configured
+			},
 		}
 
 		beforeReceiveHandler := &testBeforeReceiveHandler{}
 
 		hubConfig := tok.NewHubConfig(actor,
-			tok.WithHubConfigAfterSend(afterSendFunc),
+			tok.WithHubConfigAfterSend(afterSendHandler),
 			tok.WithHubConfigBeforeReceive(beforeReceiveHandler),
 			tok.WithHubConfigSso(false),
 		)
@@ -164,13 +168,15 @@ var _ = Describe("PingGenerator Functional Option", func() {
 	It("should work with multiple functional options including PingGenerator", func() {
 		pingProducer := &testPingGenerator{}
 
-		afterSendFunc := func(dv *tok.Device, data []byte) {
-			// Do nothing, just verify it can be configured
+		afterSendHandler := &testAfterSendHandler{
+			callback: func(dv *tok.Device, data []byte) {
+				// Do nothing, just verify it can be configured
+			},
 		}
 
 		hubConfig := tok.NewHubConfig(actor,
 			tok.WithHubConfigPingProducer(pingProducer),
-			tok.WithHubConfigAfterSend(afterSendFunc),
+			tok.WithHubConfigAfterSend(afterSendHandler),
 			tok.WithHubConfigSso(false),
 		)
 		Ω(hubConfig).ToNot(BeNil())
@@ -204,13 +210,15 @@ var _ = Describe("PingGenerator Functional Option", func() {
 	It("should work with multiple functional options including PingGenerator", func() {
 		pingProducer := &testPingGenerator{}
 
-		afterSendFunc := func(dv *tok.Device, data []byte) {
-			// Do nothing, just verify it can be configured
+		afterSendHandler := &testAfterSendHandler{
+			callback: func(dv *tok.Device, data []byte) {
+				// Do nothing, just verify it can be configured
+			},
 		}
 
 		hubConfig := tok.NewHubConfig(actor,
 			tok.WithHubConfigPingProducer(pingProducer),
-			tok.WithHubConfigAfterSend(afterSendFunc),
+			tok.WithHubConfigAfterSend(afterSendHandler),
 			tok.WithHubConfigSso(false),
 		)
 		Ω(hubConfig).ToNot(BeNil())
@@ -245,13 +253,15 @@ var _ = Describe("CloseHandler Functional Option", func() {
 	It("should work with multiple functional options including CloseHandler", func() {
 		closeHandler := &testCloseHandler{}
 
-		afterSendFunc := func(dv *tok.Device, data []byte) {
-			// Do nothing, just verify it can be configured
+		afterSendHandler := &testAfterSendHandler{
+			callback: func(dv *tok.Device, data []byte) {
+				// Do nothing, just verify it can be configured
+			},
 		}
 
 		hubConfig := tok.NewHubConfig(actor,
 			tok.WithHubConfigCloseHandler(closeHandler),
-			tok.WithHubConfigAfterSend(afterSendFunc),
+			tok.WithHubConfigAfterSend(afterSendHandler),
 			tok.WithHubConfigSso(false),
 		)
 		Ω(hubConfig).ToNot(BeNil())
@@ -309,13 +319,15 @@ var _ = Describe("ByeGenerator Functional Option", func() {
 	It("should work with multiple functional options including ByeGenerator", func() {
 		byeGenerator := &testByeGenerator{}
 
-		afterSendFunc := func(dv *tok.Device, data []byte) {
-			// Do nothing, just verify it can be configured
+		afterSendHandler := &testAfterSendHandler{
+			callback: func(dv *tok.Device, data []byte) {
+				// Do nothing, just verify it can be configured
+			},
 		}
 
 		hubConfig := tok.NewHubConfig(actor,
 			tok.WithHubConfigByeGenerator(byeGenerator),
-			tok.WithHubConfigAfterSend(afterSendFunc),
+			tok.WithHubConfigAfterSend(afterSendHandler),
 			tok.WithHubConfigSso(false),
 		)
 		Ω(hubConfig).ToNot(BeNil())

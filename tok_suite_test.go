@@ -64,3 +64,20 @@ func (h *testBeforeSendHandler) BeforeSend(dv *tok.Device, data []byte) ([]byte,
 	}
 	return data, nil
 }
+
+// Test AfterSendHandler implementation
+type testAfterSendHandler struct {
+	afterSendCalled bool
+	afterSendDevice *tok.Device
+	afterSendData   []byte
+	callback        func(dv *tok.Device, data []byte)
+}
+
+func (h *testAfterSendHandler) AfterSend(dv *tok.Device, data []byte) {
+	h.afterSendCalled = true
+	h.afterSendDevice = dv
+	h.afterSendData = data
+	if h.callback != nil {
+		h.callback(dv, data)
+	}
+}
