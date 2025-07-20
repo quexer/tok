@@ -5,7 +5,6 @@ tok
 
 Installation
 ------
-
     go get github.com/quexer/tok
 
 
@@ -21,6 +20,16 @@ Features
 - Easy integration with custom authentication logic.
 - Cluster support available via [quexer/cluster](https://github.com/quexer/cluster).
 
+WebSocket Engine Support
+-----------------------
+
+tok supports multiple WebSocket engines for flexible integration:
+
+- `golang.org/x/net/websocket` (default)
+- `github.com/gorilla/websocket`
+
+You can select the engine via configuration options. Future engines can be added easily.
+
 Structure
 ---------
 
@@ -28,7 +37,11 @@ Structure
 - `hub.go`         : Hub logic for managing connections and message dispatch.
 - `hub_config.go`  : Hub configuration and options.
 - `tcp_conn.go`    : TCP server and adapter implementation.
-- `ws_conn.go`     : WebSocket server and adapter implementation.
+- `ws_conn.go`     : WebSocket server implementation supporting multiple engines.
+- `ws_gorilla.go`  : `github.com/gorilla/websocket` adapter.
+- `ws_x.go`        : `golang.org/x/net/websocket` adapter.
+- `ws_option.go`   : WebSocket engine selection and options.
 - `memory_q.go`    : Built-in in-memory message queue for offline messages.
 - `device.go`      : Device abstraction for user device.
 - `example/`       : Example server and client implementations. [See examples](./example/)
+
