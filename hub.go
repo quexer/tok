@@ -281,7 +281,11 @@ func (p *Hub) byeThenClose(kicker *Device, conn *connection) {
 
 func (p *Hub) close(conn *connection) {
 	conn.close()
-	p.config.actor.OnClose(conn.dv)
+	
+	// Call the optional close handler if configured
+	if p.config.fnOnClose != nil {
+		p.config.fnOnClose.OnClose(conn.dv)
+	}
 }
 
 func (p *Hub) goOnline(conn *connection) {
