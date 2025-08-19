@@ -5,6 +5,7 @@
 package tok
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"sync"
@@ -13,11 +14,12 @@ import (
 // abstract connection,
 type connection struct {
 	sync.RWMutex
-	wLock   sync.Mutex // write lock
-	dv      *Device    // device of this connection
-	adapter conAdapter // real connection adapter
-	hub     *Hub       // hub of this connection
-	closed  bool       // connection closed flag
+	wLock      sync.Mutex         // write lock
+	dv         *Device            // device of this connection
+	adapter    conAdapter         // real connection adapter
+	hub        *Hub               // hub of this connection
+	closed     bool               // connection closed flag
+	cancelFunc context.CancelFunc // cancel function for ping goroutine
 }
 
 // conState is the state of connection
@@ -71,7 +73,14 @@ func (conn *connection) close() {
 	conn.Lock()
 	defer conn.Unlock()
 
+	if conn.closed {
+		return
+	}
+
 	conn.closed = true
+	if conn.cancelFunc != nil {
+		conn.cancelFunc() // cancel ping goroutine
+	}
 	_ = conn.adapter.Close()
 }
 

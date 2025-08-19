@@ -19,6 +19,7 @@ Features
 - Configurable timeouts for authentication, server ping, and message reading/writing.
 - Easy integration with custom authentication logic.
 - Cluster support available via [quexer/cluster](https://github.com/quexer/cluster).
+- Graceful connection lifecycle management with context-based cancellation.
 
 WebSocket Engine Support
 -----------------------

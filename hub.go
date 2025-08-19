@@ -338,10 +338,14 @@ func (p *Hub) receive(dv *Device, b []byte) {
 
 // initConnection init connection with device and adapter
 func (p *Hub) initConnection(dv *Device, adapter conAdapter) {
+	// create context for this connection
+	ctx, cancel := context.WithCancel(context.Background())
+
 	conn := &connection{
-		dv:      dv,
-		adapter: adapter,
-		hub:     p,
+		dv:         dv,
+		adapter:    adapter,
+		hub:        p,
+		cancelFunc: cancel,
 	}
 
 	// change conn state to online
@@ -351,21 +355,25 @@ func (p *Hub) initConnection(dv *Device, adapter conAdapter) {
 	if p.config.pingProducer != nil {
 		ticker := time.NewTicker(p.config.serverPingInterval)
 		go func() {
-			for range ticker.C {
-				if conn.isClosed() {
-					ticker.Stop()
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
 					return
-				}
-				// Use the optional BeforeSend function if provided
-				// Get fresh ping data for each iteration to ensure the current state of the connection
-				pingData := p.config.pingProducer.Ping()
-				data, err := p.beforeSend(dv, pingData)
-				if err != nil {
-					slog.Warn("[tok] before send ping failed", "err", err)
-					continue
-				}
-				if err := conn.Write(data); err != nil {
-					slog.Warn("[tok] write ping failed", "err", err)
+				case <-ticker.C:
+					// Use the optional BeforeSend function if provided
+					// Get fresh ping data for each iteration to ensure the current state of the connection
+					pingData := p.config.pingProducer.Ping()
+					data, err := p.beforeSend(dv, pingData)
+					if err != nil {
+						slog.Warn("[tok] before send ping failed", "err", err)
+						continue
+					}
+					if err := conn.Write(data); err != nil {
+						slog.Warn("[tok] write ping failed", "err", err)
+						// write failed, connection might be closed, exit ping loop
+						return
+					}
 				}
 			}
 		}()
