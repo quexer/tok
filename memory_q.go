@@ -7,12 +7,15 @@ import (
 )
 
 type MemoryQueue struct {
-	queues sync.Map // uid -> *userQueue
+	queues     sync.Map // uid -> *userQueue
+	ctx        context.Context
+	cancelFunc context.CancelFunc
 }
 
 type userQueue struct {
-	mu    sync.Mutex
-	items []queueItem
+	mu         sync.Mutex
+	items      []queueItem
+	lastAccess time.Time // track last access time for cleanup
 }
 
 type queueItem struct {
@@ -21,15 +24,58 @@ type queueItem struct {
 }
 
 func NewMemoryQueue() *MemoryQueue {
-	return &MemoryQueue{}
+	ctx, cancel := context.WithCancel(context.Background())
+	mq := &MemoryQueue{
+		ctx:        ctx,
+		cancelFunc: cancel,
+	}
+	// Start cleanup routine
+	go mq.cleanupRoutine()
+	return mq
+}
+
+// cleanupRoutine periodically cleans up empty queues
+func (mq *MemoryQueue) cleanupRoutine() {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-mq.ctx.Done():
+			return
+		case <-ticker.C:
+			now := time.Now()
+			mq.queues.Range(func(key, value interface{}) bool {
+				queue := value.(*userQueue)
+				queue.mu.Lock()
+				// Remove queue if empty and not accessed for 5 minutes
+				if len(queue.items) == 0 && now.Sub(queue.lastAccess) > time.Minute {
+					queue.mu.Unlock()
+					mq.queues.Delete(key)
+				} else {
+					queue.mu.Unlock()
+				}
+				return true
+			})
+		}
+	}
+}
+
+// Close stops the cleanup routine
+func (mq *MemoryQueue) Close() {
+	if mq.cancelFunc != nil {
+		mq.cancelFunc()
+	}
 }
 
 func (mq *MemoryQueue) Enq(ctx context.Context, uid interface{}, data []byte, ttl ...uint32) error {
-	qu, _ := mq.queues.LoadOrStore(uid, &userQueue{})
+	qu, _ := mq.queues.LoadOrStore(uid, &userQueue{lastAccess: time.Now()})
 	queue := qu.(*userQueue)
 
 	queue.mu.Lock()
 	defer queue.mu.Unlock()
+
+	queue.lastAccess = time.Now()
 
 	var expiration time.Time
 	if len(ttl) > 0 && ttl[0] > 0 {
@@ -53,21 +99,19 @@ func (mq *MemoryQueue) Deq(ctx context.Context, uid interface{}) ([]byte, error)
 	queue.mu.Lock()
 	defer queue.mu.Unlock()
 
+	queue.lastAccess = time.Now()
+
 	// Clean up expired items
 	mq.clearExpireItem(queue)
 
 	if len(queue.items) == 0 {
-		mq.queues.Delete(uid)
+		// Don't delete immediately, let cleanup routine handle it
 		return nil, nil
 	}
 
 	// Get the first valid element
 	data := queue.items[0].data
-	if len(queue.items) == 1 {
-		mq.queues.Delete(uid)
-	} else {
-		queue.items = queue.items[1:]
-	}
+	queue.items = queue.items[1:]
 
 	return data, nil
 }
@@ -94,13 +138,12 @@ func (mq *MemoryQueue) Len(ctx context.Context, uid interface{}) (int, error) {
 	queue.mu.Lock()
 	defer queue.mu.Unlock()
 
+	queue.lastAccess = time.Now()
+
 	// Clean up expired items
 	mq.clearExpireItem(queue)
 
-	// Delete empty queue
-	if len(queue.items) == 0 {
-		mq.queues.Delete(uid)
-	}
+	// Don't delete empty queue immediately, let cleanup routine handle it
 
 	return len(queue.items), nil
 }
