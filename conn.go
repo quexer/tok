@@ -9,17 +9,19 @@ import (
 	"errors"
 	"log/slog"
 	"sync"
+	"sync/atomic"
 )
 
 // abstract connection,
 type connection struct {
 	sync.RWMutex
-	wLock      sync.Mutex         // write lock
-	dv         *Device            // device of this connection
-	adapter    conAdapter         // real connection adapter
-	hub        *Hub               // hub of this connection
-	closed     bool               // connection closed flag
-	cancelFunc context.CancelFunc // cancel function for ping goroutine
+	wLock            sync.Mutex         // write lock
+	dv               *Device            // device of this connection
+	adapter          conAdapter         // real connection adapter
+	hub              *Hub               // hub of this connection
+	closed           bool               // connection closed flag
+	cancelFunc       context.CancelFunc // cancel function for ping goroutine
+	offlineTriggered int32              // ensure offline state change is triggered only once
 }
 
 // conState is the state of connection
@@ -47,6 +49,13 @@ func (conn *connection) uid() interface{} {
 	return conn.dv.UID()
 }
 
+// triggerOffline triggers offline state change only once
+func (conn *connection) triggerOffline() {
+	if atomic.CompareAndSwapInt32(&conn.offlineTriggered, 0, 1) {
+		conn.hub.stateChange(conn, false)
+	}
+}
+
 func (conn *connection) isClosed() bool {
 	conn.RLock()
 	defer conn.RUnlock()
@@ -62,7 +71,7 @@ func (conn *connection) readLoop() {
 		b, err := conn.adapter.Read()
 		if err != nil {
 			slog.Debug("read err", "err", err)
-			conn.hub.stateChange(conn, false)
+			conn.triggerOffline()
 			return
 		}
 		conn.hub.receive(conn.dv, b)
@@ -93,7 +102,7 @@ func (conn *connection) Write(b []byte) error {
 	}
 
 	if err := conn.adapter.Write(b); err != nil {
-		conn.hub.stateChange(conn, false)
+		conn.triggerOffline()
 		return err
 	}
 	return nil
