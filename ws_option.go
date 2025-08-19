@@ -8,10 +8,9 @@ const (
 	WsEngineX WsEngine = iota
 	// WsEngineGorilla uses github.com/gorilla/websocket
 	WsEngineGorilla
-	// WsEngineCoder uses github.com/coder/websocket
+	// WsEngineCoder uses github.com/coder/websocket (former nhooyr.io/websocket)
 	WsEngineCoder
 	// Future engines can be easily added here, e.g.:
-	// WsEngineNhooyr for nhooyr.io/websocket
 	// WsEngineCustom for custom implementations
 )
 

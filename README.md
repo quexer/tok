@@ -27,7 +27,7 @@ tok supports multiple WebSocket engines for flexible integration:
 
 - `golang.org/x/net/websocket` (default)
 - `github.com/gorilla/websocket`
-- `github.com/coder/websocket`
+- `github.com/coder/websocket` ( former `nhooyr.io/websocket`)
 
 You can select the engine via configuration options. Future engines can be added easily.
 
