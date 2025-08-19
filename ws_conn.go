@@ -5,10 +5,12 @@
 package tok
 
 import (
+	"context"
 	"log"
 	"log/slog"
 	"net/http"
 
+	coderws "github.com/coder/websocket"
 	gorillaws "github.com/gorilla/websocket"
 	xwebsocket "golang.org/x/net/websocket"
 )
@@ -70,6 +72,33 @@ func (p *WsHandler) hdlFromGorillaWebSocket() http.HandlerFunc {
 	}
 }
 
+// hdlFromCoderWebSocket returns a coder/websocket handler function that handles incoming websocket connections.
+func (p *WsHandler) hdlFromCoderWebSocket() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Accept WebSocket connection with default options
+		conn, err := coderws.Accept(w, r, nil)
+		if err != nil {
+			slog.Warn("coder websocket accept err", "err", err)
+			return
+		}
+
+		adapter := &coderWsAdapter{
+			conn:         conn,
+			ctx:          context.Background(),
+			txt:          p.txt,
+			writeTimeout: p.hubConfig.writeTimeout,
+			readTimeout:  p.hubConfig.readTimeout,
+		}
+
+		if dv, err := p.auth(r); err != nil {
+			slog.Warn("coder websocket auth err", "err", err)
+			_ = adapter.Close()
+		} else {
+			p.hub.initConnection(dv, adapter)
+		}
+	}
+}
+
 // CreateWsHandler create websocket http handler
 // auth function is used for user authorization
 // Return hub and http handler
@@ -97,6 +126,8 @@ func CreateWsHandler(auth WsAuthFunc, opts ...WsHandlerOption) (*Hub, http.Handl
 	switch wsh.engine {
 	case WsEngineGorilla:
 		return wsh.hub, wsh.hdlFromGorillaWebSocket()
+	case WsEngineCoder:
+		return wsh.hub, wsh.hdlFromCoderWebSocket()
 	default:
 		return wsh.hub, wsh.hdlFromXwebSocket()
 	}

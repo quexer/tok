@@ -3,6 +3,7 @@ module github.com/quexer/tok
 go 1.24
 
 require (
+	github.com/coder/websocket v1.8.13
 	github.com/gorilla/websocket v1.5.3
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
