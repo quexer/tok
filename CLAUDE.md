@@ -42,6 +42,7 @@ The tok library is an IM (Instant Messaging) framework with a modular design tha
    - WebSocket: `ws_conn.go` - WebSocket support with pluggable engines:
      - `ws_x.go`: golang.org/x/net/websocket adapter (default)
      - `ws_gorilla.go`: github.com/gorilla/websocket adapter
+     - `wx_coder.go`: github.com/coder/websocket adapter  (former nhooyr.io/websocket)
 
 4. **Queue System (`q.go`, `memory_q.go`)**: Interface-based offline message queue with built-in memory implementation. Supports TTL and deduplication.
 
