@@ -8,6 +8,8 @@ import (
 	"errors"
 )
 
+//go:generate mockgen -destination=mocks/tok.go -package=mocks . Actor,BeforeReceiveHandler,BeforeSendHandler,AfterSendHandler,CloseHandler,PingGenerator
+
 // ErrOffline occurs while sending message to online user only. see Hub.Send
 var ErrOffline = errors.New("offline")
 

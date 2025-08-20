@@ -7,6 +7,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/onsi/ginkgo/v2 v2.24.0
 	github.com/onsi/gomega v1.38.0
+	go.uber.org/mock v0.6.0
 	golang.org/x/net v0.43.0
 )
 

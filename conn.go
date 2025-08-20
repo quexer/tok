@@ -12,6 +12,8 @@ import (
 	"sync/atomic"
 )
 
+//go:generate mockgen -destination=mocks/conn.go -package=mocks . ConAdapter
+
 // abstract connection,
 type connection struct {
 	sync.RWMutex
