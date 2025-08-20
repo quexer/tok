@@ -100,8 +100,8 @@ graph TB
     Actor -.->|optional| PG
     Actor -.->|optional| BG
     
-    style Hub fill:#f9f,stroke:#333,stroke-width:4px
-    style Actor fill:#bbf,stroke:#333,stroke-width:2px
+    style Hub fill:#e74c3c,stroke:#333,stroke-width:4px,color:#fff
+    style Actor fill:#3498db,stroke:#333,stroke-width:2px,color:#fff
 ```
 
 Structure
@@ -119,4 +119,3 @@ Structure
 - `memory_q.go`    : Built-in in-memory message queue for offline messages.
 - `device.go`      : Device abstraction for user device.
 - `example/`       : Example server and client implementations. [See examples](./example/)
-
