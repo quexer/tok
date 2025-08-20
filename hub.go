@@ -213,14 +213,15 @@ func (p *Hub) down(f *downFrame, conns []*connection) {
 	defer close(f.chErr)
 	expDown.Add(1)
 
+	var lastErr error
 	for _, con := range conns {
 		data, err := p.beforeSend(con.dv, f.data)
 		if err != nil {
-			f.chErr <- err
+			lastErr = err
 			continue
 		}
 		if err := con.Write(data); err != nil {
-			f.chErr <- err
+			lastErr = err
 			continue
 		}
 
@@ -228,7 +229,7 @@ func (p *Hub) down(f *downFrame, conns []*connection) {
 			go hdl.AfterSend(con.dv, f.data)
 		}
 	}
-
+	f.chErr <- lastErr
 }
 
 func (p *Hub) goOffline(conn *connection) {
