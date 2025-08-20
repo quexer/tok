@@ -17,7 +17,7 @@ type connection struct {
 	sync.RWMutex
 	wLock            sync.Mutex         // write lock
 	dv               *Device            // device of this connection
-	adapter          conAdapter         // real connection adapter
+	adapter          ConAdapter         // real connection adapter
 	hub              *Hub               // hub of this connection
 	closed           bool               // connection closed flag
 	cancelFunc       context.CancelFunc // cancel function for ping goroutine
@@ -35,14 +35,15 @@ func (conn *connection) ShareConn(other *connection) bool {
 	return conn.adapter.ShareConn(other.adapter)
 }
 
-// conAdapter is adapter for real connection.
+// ConAdapter is adapter for real connection.
 // For now, net.Conn and websocket.Conn are supported.
 // This interface is useful for building test application
-type conAdapter interface {
+// todo should export this interface, move to internal package
+type ConAdapter interface {
 	Read() ([]byte, error)             // Read payload data from real connection. Unpack from basic data frame
 	Write([]byte) error                // Write payload data to real connection. Pack into basic data frame
 	Close() error                      // Close the real connection
-	ShareConn(adapter conAdapter) bool // if two adapters share one net connection (tcp/ws)
+	ShareConn(adapter ConAdapter) bool // if two adapters share one net connection (tcp/ws)
 }
 
 func (conn *connection) uid() interface{} {

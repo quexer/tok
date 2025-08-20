@@ -9,7 +9,7 @@ import (
 )
 
 // coderWsAdapter is an adapter for github.com/coder/websocket connections.
-// It implements the conAdapter interface and provides unified read/write/timeout management for websockets.
+// It implements the ConAdapter interface and provides unified read/write/timeout management for websockets.
 type coderWsAdapter struct {
 	conn         *websocket.Conn // Underlying coder websocket connection
 	ctx          context.Context // Context for the connection
@@ -65,7 +65,7 @@ func (p *coderWsAdapter) Close() error {
 	return p.conn.Close(websocket.StatusNormalClosure, "")
 }
 
-func (p *coderWsAdapter) ShareConn(adapter conAdapter) bool {
+func (p *coderWsAdapter) ShareConn(adapter ConAdapter) bool {
 	coderAdapter, ok := adapter.(*coderWsAdapter)
 	if !ok {
 		return false

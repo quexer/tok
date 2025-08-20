@@ -94,7 +94,7 @@ func (p *tcpAdapter) Close() error {
 	return p.conn.Close()
 }
 
-func (p *tcpAdapter) ShareConn(adapter conAdapter) bool {
+func (p *tcpAdapter) ShareConn(adapter ConAdapter) bool {
 	tcpAdp, ok := adapter.(*tcpAdapter)
 	if !ok {
 		return false

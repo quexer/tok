@@ -338,7 +338,7 @@ func (p *Hub) receive(dv *Device, b []byte) {
 }
 
 // initConnection init connection with device and adapter
-func (p *Hub) initConnection(dv *Device, adapter conAdapter) {
+func (p *Hub) initConnection(dv *Device, adapter ConAdapter) {
 	// create context for this connection
 	ctx, cancel := context.WithCancel(context.Background())
 

@@ -8,7 +8,7 @@ import (
 )
 
 // gorillaWsAdapter is an adapter for github.com/gorilla/websocket connections.
-// It implements the conAdapter interface and provides unified read/write/timeout management for websockets.
+// It implements the ConAdapter interface and provides unified read/write/timeout management for websockets.
 type gorillaWsAdapter struct {
 	conn         *websocket.Conn // Underlying gorilla websocket connection
 	txt          bool            // If true, use text frames; otherwise, use binary frames
@@ -46,7 +46,7 @@ func (p *gorillaWsAdapter) Close() error {
 	return p.conn.Close()
 }
 
-func (p *gorillaWsAdapter) ShareConn(adapter conAdapter) bool {
+func (p *gorillaWsAdapter) ShareConn(adapter ConAdapter) bool {
 	gorillaAdapter, ok := adapter.(*gorillaWsAdapter)
 	if !ok {
 		return false
