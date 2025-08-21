@@ -54,7 +54,7 @@ func createHub(config *HubConfig) *Hub {
 	} else {
 		// quit if both read timeout and ping are disabled
 		if config.pingProducer == nil {
-			log.Fatalln("[tok] both read timeout and server ping have been disabled, server socket resource leak might happen")
+			log.Fatalln("[tok] fatal: both read timeout and server ping have been disabled, server socket resource leak might happen")
 		}
 	}
 

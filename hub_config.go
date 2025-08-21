@@ -25,7 +25,7 @@ type HubConfig struct {
 // NewHubConfig create new HubConfig
 func NewHubConfig(actor Actor, opts ...HubConfigOption) *HubConfig {
 	if actor == nil {
-		log.Fatal("actor is needed")
+		log.Fatal("fatal: actor is needed")
 	}
 
 	hc := &HubConfig{

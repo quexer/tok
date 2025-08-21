@@ -8,20 +8,24 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/quexer/tok"
+	"github.com/quexer/tok/mocks"
 )
 
 var _ = Describe("WsConn", func() {
 	var auth tok.WsAuthFunc
+	var mActor tok.Actor
+
 	BeforeEach(func() {
 		auth = func(r *http.Request) (*tok.Device, error) {
 			return tok.CreateDevice(fmt.Sprintf("%p", r), ""), nil
 		}
+		mActor = mocks.NewMockActor(ctl)
 	})
 
 	It("CreateWsHandler", func() {
 		hub, hdl := tok.CreateWsHandler(auth,
 			tok.WithWsHandlerTxt(true),
-			tok.WithWsHandlerHubConfig(tok.NewHubConfig(actor,
+			tok.WithWsHandlerHubConfig(tok.NewHubConfig(mActor,
 				tok.WithHubConfigSso(true),
 				tok.WithHubConfigPingProducer(&testPingGenerator{}))))
 		Ω(hub).ToNot(BeNil())
@@ -32,7 +36,7 @@ var _ = Describe("WsConn", func() {
 		hub, hdl := tok.CreateWsHandler(auth,
 			tok.WithWsHandlerTxt(true),
 			tok.WithWsHandlerEngine(tok.WsEngineGorilla),
-			tok.WithWsHandlerHubConfig(tok.NewHubConfig(actor,
+			tok.WithWsHandlerHubConfig(tok.NewHubConfig(mActor,
 				tok.WithHubConfigSso(true),
 				tok.WithHubConfigPingProducer(&testPingGenerator{}))))
 		Ω(hub).ToNot(BeNil())
@@ -43,7 +47,7 @@ var _ = Describe("WsConn", func() {
 		hub, hdl := tok.CreateWsHandler(auth,
 			tok.WithWsHandlerTxt(true),
 			tok.WithWsHandlerEngine(tok.WsEngineX),
-			tok.WithWsHandlerHubConfig(tok.NewHubConfig(actor,
+			tok.WithWsHandlerHubConfig(tok.NewHubConfig(mActor,
 				tok.WithHubConfigSso(true),
 				tok.WithHubConfigPingProducer(&testPingGenerator{}))))
 		Ω(hub).ToNot(BeNil())
@@ -54,7 +58,7 @@ var _ = Describe("WsConn", func() {
 		hub, hdl := tok.CreateWsHandler(auth,
 			tok.WithWsHandlerTxt(true),
 			tok.WithWsHandlerEngine(tok.WsEngineGorilla),
-			tok.WithWsHandlerHubConfig(tok.NewHubConfig(actor,
+			tok.WithWsHandlerHubConfig(tok.NewHubConfig(mActor,
 				tok.WithHubConfigSso(true),
 				tok.WithHubConfigPingProducer(&testPingGenerator{}))))
 		Ω(hub).ToNot(BeNil())
