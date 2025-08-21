@@ -2,7 +2,9 @@ package tok
 
 import (
 	"context"
+	"errors"
 	"expvar"
+	"fmt"
 	"log"
 	"log/slog"
 	"time"
@@ -171,8 +173,13 @@ func (p *Hub) Send(to interface{}, b []byte, ttl uint32) error {
 	ff := &downFrame{uid: to, data: b, ttl: ttl, chErr: make(chan error)}
 	p.chDown <- ff
 	err := <-ff.chErr
+
+	// if cache failed, return err directly
+	if errors.Is(err, ErrCacheFailed) {
+		return err
+	}
+
 	if ttl > 0 && err != nil {
-		// online send err
 		ff.chErr = make(chan error) // create new channel
 		go p.cache(ff)
 		return <-ff.chErr
@@ -199,12 +206,12 @@ func (p *Hub) cache(ff *downFrame) {
 	ctx := context.TODO()
 	expEnq.Add(1)
 	if p.config.q == nil {
-		ff.chErr <- ErrQueueRequired
+		ff.chErr <- fmt.Errorf("%w: %w", ErrCacheFailed, ErrQueueRequired)
 		return
 	}
 
 	if err := p.config.q.Enq(ctx, ff.uid, ff.data, ff.ttl); err != nil {
-		ff.chErr <- err
+		ff.chErr <- fmt.Errorf("%w: %w", ErrCacheFailed, err)
 	}
 }
 

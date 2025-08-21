@@ -11,10 +11,13 @@ import (
 //go:generate mockgen -destination=mocks/tok.go -package=mocks . Actor,BeforeReceiveHandler,BeforeSendHandler,AfterSendHandler,CloseHandler,PingGenerator
 
 // ErrOffline occurs while sending message to online user only. see Hub.Send
-var ErrOffline = errors.New("offline")
+var ErrOffline = errors.New("tok: offline")
 
 // ErrQueueRequired occurs while sending "cacheable" message without queue
-var ErrQueueRequired = errors.New("queue is required")
+var ErrQueueRequired = errors.New("tok: queue is required")
+
+// ErrCacheFailed occurs while sending "cacheable" message with queue but failed to cache
+var ErrCacheFailed = errors.New("tok: cache error")
 
 // BeforeReceiveHandler is an interface for preprocessing incoming data before OnReceive
 type BeforeReceiveHandler interface {
