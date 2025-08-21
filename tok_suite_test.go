@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 
 	"github.com/quexer/tok"
 )
@@ -16,10 +17,16 @@ func TestTok(t *testing.T) {
 }
 
 var ctx context.Context
+var ctl *gomock.Controller
 var actor tok.Actor
 var _ = BeforeEach(func() {
 	ctx = context.Background()
+	ctl = gomock.NewController(GinkgoT())
 	actor = &simpleActor{}
+})
+
+var _ = AfterEach(func() {
+	ctl.Finish()
 })
 
 type simpleActor struct {
