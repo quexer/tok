@@ -1,3 +1,10 @@
+.PHONY: build
+build: test
+	go build ./...
+
+###
+
+
 .PHONY: fmt
 fmt:
 	go mod tidy
@@ -11,6 +18,3 @@ mock:
 test: fmt mock
 	ginkgo -r .
 
-.PHONY: build
-build: fmt mock
-	go build ./...
