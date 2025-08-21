@@ -3,7 +3,11 @@ package tok_test
 import (
 	"errors"
 	"net/http"
+	"net/http/httptest"
+	"strings"
+	"time"
 
+	"github.com/gorilla/websocket"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
@@ -40,8 +44,77 @@ var _ = Describe("Hub", func() {
 
 	})
 
-	Describe("Send", func() {
-		Context("offline", func() {
+	Context("Online", func() {
+		var (
+			server    *httptest.Server
+			ws        *websocket.Conn
+			wsHandler http.Handler
+		)
+
+		BeforeEach(func() {
+			hub, wsHandler = tok.CreateWsHandler(auth, tok.WithWsHandlerHubConfig(
+				tok.NewHubConfig(mockActor,
+					tok.WithHubConfigQueue(mockQueue),
+				),
+			))
+			// wsHandler = handler.ServeHTTP
+			server = httptest.NewServer(wsHandler)
+
+			// Convert http:// to ws://
+			u := "ws" + strings.TrimPrefix(server.URL, "http")
+
+			// Connect to the server
+			var err error
+			ws, _, err = websocket.DefaultDialer.Dial(u, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			// wait for online
+			time.Sleep(100 * time.Millisecond)
+		})
+
+		AfterEach(func() {
+			_ = ws.Close()
+			server.Close()
+		})
+
+		Context("Send", func() {
+			It("should send message to the online user", func() {
+				message := []byte("hello")
+				err := hub.Send(device.UID, message, 0)
+				Expect(err).NotTo(HaveOccurred())
+
+				_, p, err := ws.ReadMessage()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(p).To(Equal(message))
+			})
+
+			It("should return an error if sending fails", func() {
+				// Close the connection to trigger a send error
+				err := ws.Close()
+				Ω(err).NotTo(HaveOccurred())
+				// wait for offline
+				time.Sleep(100 * time.Millisecond)
+
+				message := []byte("hello")
+				err = hub.Send(device.UID, message, 0)
+				Expect(err).To(HaveOccurred())
+			})
+		})
+		Context("CheckOnline", func() {
+			It("should return true for online user", func() {
+				online := hub.CheckOnline(device.UID())
+				Expect(online).To(BeFalse())
+			})
+
+			It("should return false for offline user", func() {
+				online := hub.CheckOnline("offline-user")
+				Expect(online).To(BeFalse())
+			})
+		})
+	})
+
+	Context("Offline", func() {
+		Context("Send", func() {
 			Context("has queue", func() {
 				BeforeEach(func() {
 					config := tok.NewHubConfig(mockActor, tok.WithHubConfigQueue(mockQueue))
@@ -73,40 +146,25 @@ var _ = Describe("Hub", func() {
 
 				})
 			})
-			Context("queue is nil", func() {
-				BeforeEach(func() {
-					config := tok.NewHubConfig(mockActor)
-					hub, _ = tok.CreateWsHandler(auth, tok.WithWsHandlerHubConfig(config))
-				})
-				It("should return ErrQueueRequired when trying to cache with TTL > 0", func() {
-					err := hub.Send("offline-user", []byte("test"), 60)
-					Ω(err).To(HaveOccurred())
-					Ω(err).To(MatchError(tok.ErrQueueRequired))
-				})
+			It("queue is nil - should return ErrQueueRequired when trying to cache with TTL > 0", func() {
+				config := tok.NewHubConfig(mockActor)
+				hub, _ = tok.CreateWsHandler(auth, tok.WithWsHandlerHubConfig(config))
+
+				err := hub.Send("offline-user", []byte("test"), 60)
+				Ω(err).To(HaveOccurred())
+				Ω(err).To(MatchError(tok.ErrQueueRequired))
 			})
 		})
 	})
 
-	Describe("CheckOnline method", func() {
-		It("should return false for non-existent user", func() {
-			online := hub.CheckOnline("non-existent-user")
-			Expect(online).To(BeFalse())
-		})
-
-		It("should return false for offline user", func() {
-			online := hub.CheckOnline("offline-user")
-			Expect(online).To(BeFalse())
-		})
-	})
-
-	Describe("Online method", func() {
+	Context("Online method", func() {
 		It("should return empty list when no users are online", func() {
 			onlineUsers := hub.Online()
 			Expect(onlineUsers).To(BeEmpty())
 		})
 	})
 
-	Describe("Kick method", func() {
+	Context("Kick method", func() {
 		It("should not panic when kicking non-existent user", func() {
 			Expect(func() {
 				hub.Kick("non-existent-user")
@@ -114,7 +172,7 @@ var _ = Describe("Hub", func() {
 		})
 	})
 
-	Describe("Hub with BeforeReceiveHandler", func() {
+	Context("Hub with BeforeReceiveHandler", func() {
 		var mockBeforeReceive *mocks.MockBeforeReceiveHandler
 
 		BeforeEach(func() {
@@ -137,7 +195,7 @@ var _ = Describe("Hub", func() {
 		})
 	})
 
-	Describe("Hub with BeforeSendHandler", func() {
+	Context("Hub with BeforeSendHandler", func() {
 		var mockBeforeSend *mocks.MockBeforeSendHandler
 
 		BeforeEach(func() {
@@ -160,7 +218,7 @@ var _ = Describe("Hub", func() {
 		})
 	})
 
-	Describe("Hub with AfterSendHandler", func() {
+	Context("Hub with AfterSendHandler", func() {
 		var mockAfterSend *mocks.MockAfterSendHandler
 
 		BeforeEach(func() {
@@ -183,7 +241,7 @@ var _ = Describe("Hub", func() {
 		})
 	})
 
-	Describe("Hub with CloseHandler", func() {
+	Context("Hub with CloseHandler", func() {
 		var mockCloseHandler *mocks.MockCloseHandler
 
 		BeforeEach(func() {
@@ -206,7 +264,7 @@ var _ = Describe("Hub", func() {
 		})
 	})
 
-	Describe("Hub with PingGenerator", func() {
+	Context("Hub with PingGenerator", func() {
 		var mockPingGenerator *mocks.MockPingGenerator
 
 		BeforeEach(func() {
@@ -225,7 +283,7 @@ var _ = Describe("Hub", func() {
 		})
 	})
 
-	Describe("Hub queue operations", func() {
+	Context("Hub queue operations", func() {
 		Context("with valid queue", func() {
 			It("should handle queue operations for offline users", func() {
 				// Test caching to queue for offline user
@@ -246,7 +304,7 @@ var _ = Describe("Hub", func() {
 		})
 	})
 
-	Describe("Hub configuration variations", func() {
+	Context("Hub configuration variations", func() {
 		It("should work with SSO disabled", func() {
 			mockPing := mocks.NewMockPingGenerator(ctl)
 			mockPing.EXPECT().Ping().Return([]byte("ping")).AnyTimes()
