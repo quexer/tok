@@ -35,7 +35,6 @@ type upFrame struct {
 
 // Hub core of tok, dispatch message between connections
 type Hub struct {
-	q             Queue
 	cons          map[interface{}][]*connection // connection list
 	chUp          chan *upFrame
 	chDown        chan *downFrame
