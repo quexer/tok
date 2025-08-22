@@ -24,40 +24,25 @@ var _ = Describe("WsConn", func() {
 		mPingGen = mocks.NewMockPingGenerator(ctl)
 	})
 
-	It("CreateWsHandler", func() {
+	It("CreateWsHandler with default settings", func() {
 		hub, hdl := tok.CreateWsHandler(auth,
-			tok.WithWsHandlerTxt(true),
-			tok.WithWsHandlerHubConfig(tok.NewHubConfig(mActor,
-				tok.WithHubConfigSso(true),
-				tok.WithHubConfigPingProducer(mPingGen))))
-		Ω(hub).ToNot(BeNil())
-		Ω(hdl).ToNot(BeNil())
-	})
-
-	It("CreateWsHandler with Coder WebSocket", func() {
-		hub, hdl := tok.CreateWsHandler(auth,
-			tok.WithWsHandlerEngine(tok.WsEngineCoder),
 			tok.WithWsHandlerHubConfig(tok.NewHubConfig(mActor,
 				tok.WithHubConfigPingProducer(mPingGen))))
 		Ω(hub).ToNot(BeNil())
 		Ω(hdl).ToNot(BeNil())
 	})
 
-	It("CreateWsHandler with Engine enum - XNet", func() {
-		hub, hdl := tok.CreateWsHandler(auth,
-			tok.WithWsHandlerEngine(tok.WsEngineX),
-			tok.WithWsHandlerHubConfig(tok.NewHubConfig(mActor,
-				tok.WithHubConfigPingProducer(mPingGen))))
-		Ω(hub).ToNot(BeNil())
-		Ω(hdl).ToNot(BeNil())
-	})
-
-	It("CreateWsHandler with Engine enum - Gorilla", func() {
-		hub, hdl := tok.CreateWsHandler(auth,
-			tok.WithWsHandlerEngine(tok.WsEngineGorilla),
-			tok.WithWsHandlerHubConfig(tok.NewHubConfig(mActor,
-				tok.WithHubConfigPingProducer(mPingGen))))
-		Ω(hub).ToNot(BeNil())
-		Ω(hdl).ToNot(BeNil())
-	})
+	DescribeTable("CreateWsHandler with different WebSocket engines",
+		func(engine tok.WsEngine) {
+			hub, hdl := tok.CreateWsHandler(auth,
+				tok.WithWsHandlerEngine(engine),
+				tok.WithWsHandlerHubConfig(tok.NewHubConfig(mActor,
+					tok.WithHubConfigPingProducer(mPingGen))))
+			Ω(hub).ToNot(BeNil())
+			Ω(hdl).ToNot(BeNil())
+		},
+		Entry("Coder WebSocket", tok.WsEngineCoder),
+		Entry("XNet WebSocket", tok.WsEngineX),
+		Entry("Gorilla WebSocket", tok.WsEngineGorilla),
+	)
 })
