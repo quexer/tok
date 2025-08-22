@@ -16,22 +16,18 @@ import (
 
 // connection represents an abstract connection with thread-safe operations.
 //
-// Lock usage:
-// - stateLock: Protects the 'closed' field and connection lifecycle state
+// Thread-safety:
 // - wLock: Ensures write operations are serialized (Write method only)
-// - offlineTriggered: Uses atomic operations, no lock needed
-//
-// Lock ordering (if both needed): Always acquire stateLock before wLock to prevent deadlock
+// - closed: Uses atomic operations for lock-free status check
+// - offlineTriggered: Uses atomic operations for exactly-once semantics
 type connection struct {
-	// stateLock protects the closed field and general connection state
-	stateLock sync.RWMutex
 	// wLock ensures write operations are serialized
 	wLock            sync.Mutex
 	dv               *Device            // device of this connection
 	adapter          ConAdapter         // real connection adapter
 	hub              *Hub               // hub of this connection
-	closed           bool               // connection closed flag (protected by stateLock)
 	cancelFunc       context.CancelFunc // cancel function for ping goroutine
+	closed           int32              // connection closed flag (atomic: 0=open, 1=closed)
 	offlineTriggered int32              // ensure offline state change is triggered only once (atomic)
 }
 
@@ -69,9 +65,7 @@ func (conn *connection) triggerOffline() {
 }
 
 func (conn *connection) isClosed() bool {
-	conn.stateLock.RLock()
-	defer conn.stateLock.RUnlock()
-	return conn.closed
+	return atomic.LoadInt32(&conn.closed) == 1
 }
 
 func (conn *connection) readLoop() {
@@ -91,14 +85,12 @@ func (conn *connection) readLoop() {
 }
 
 func (conn *connection) close() {
-	conn.stateLock.Lock()
-	defer conn.stateLock.Unlock()
-
-	if conn.closed {
+	// Use atomic compare-and-swap to ensure close is called only once
+	if !atomic.CompareAndSwapInt32(&conn.closed, 0, 1) {
 		return
 	}
 
-	conn.closed = true
+	// Now we have exclusive access to close the connection
 	if conn.cancelFunc != nil {
 		conn.cancelFunc() // cancel ping goroutine
 	}
