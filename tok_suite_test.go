@@ -24,10 +24,3 @@ var _ = BeforeEach(func() {
 var _ = AfterEach(func() {
 	ctl.Finish()
 })
-
-// Test PingGenerator implementations
-type testPingGenerator struct{}
-
-func (p *testPingGenerator) Ping() []byte {
-	return []byte("ping")
-}
