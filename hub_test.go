@@ -148,15 +148,8 @@ var _ = Describe("Hub", func() {
 			// Give connection time to establish
 			time.Sleep(50 * time.Millisecond)
 
-			devices := hub.Online()
-			Expect(devices).To(HaveLen(1))
-
-			// Check that the device is in the list
-			if device, ok := devices[0].(*tok.Device); ok {
-				if uid, ok := device.UID().(string); ok {
-					Expect(uid).To(Equal("test-user"))
-				}
-			}
+			userList := hub.Online()
+			Expect(userList).To(Equal([]any{"test-user"}))
 		})
 	})
 
