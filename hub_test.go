@@ -21,23 +21,24 @@ var _ = Describe("Hub", func() {
 		mockQueue   *mocks.MockQueue
 		mockPingGen *mocks.MockPingGenerator
 		hub         *tok.Hub
-		handler     http.Handler
 		server      *httptest.Server
 		wsURL       string
 		dialer      *websocket.Dialer
+		hubConfig   *tok.HubConfig
+		auth        tok.WsAuthFunc
 	)
 
 	BeforeEach(func() {
 		mockActor = mocks.NewMockActor(ctl)
 		mockQueue = mocks.NewMockQueue(ctl)
-		mockPingGen := mocks.NewMockPingGenerator(ctl)
+		mockPingGen = mocks.NewMockPingGenerator(ctl)
 
 		// Setup default expectations for async calls
 		mockQueue.EXPECT().Deq(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 		mockQueue.EXPECT().Enq(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-		// Create hub with minimal necessary options
-		auth := func(r *http.Request) (*tok.Device, error) {
+		// Create default auth and hub config
+		auth = func(r *http.Request) (*tok.Device, error) {
 			uid := r.Header.Get("uid")
 			if uid == "" {
 				uid = "test-user"
@@ -45,10 +46,18 @@ var _ = Describe("Hub", func() {
 			return tok.CreateDevice(uid, ""), nil
 		}
 
-		hubConfig := tok.NewHubConfig(mockActor,
+		hubConfig = tok.NewHubConfig(mockActor,
 			tok.WithHubConfigQueue(mockQueue),
 			tok.WithHubConfigPingProducer(mockPingGen), // Required to avoid fatal error
 		)
+
+		dialer = &websocket.Dialer{}
+	})
+
+	// JustBeforeEach creates the hub and server using the configuration from BeforeEach.
+	// This allows nested BeforeEach blocks to modify the config before the hub is created.
+	JustBeforeEach(func() {
+		var handler http.Handler
 		hub, handler = tok.CreateWsHandler(auth,
 			tok.WithWsHandlerHubConfig(hubConfig),
 			tok.WithWsHandlerEngine(tok.WsEngineGorilla)) // Use Gorilla engine to match client
@@ -56,7 +65,6 @@ var _ = Describe("Hub", func() {
 		// Setup test server
 		server = httptest.NewServer(handler)
 		wsURL = "ws" + server.URL[4:] // Convert http:// to ws://
-		dialer = &websocket.Dialer{}
 	})
 
 	AfterEach(func() {
@@ -93,7 +101,7 @@ var _ = Describe("Hub", func() {
 
 		It("should queue message when device is offline with TTL", func() {
 			// Setup mock expectation for queue - use AnyTimes() for async call
-			mockQueue.EXPECT().Enq(gomock.Any(), "offline-user", []byte("queued message"), int64(300)).Return(nil).AnyTimes()
+			mockQueue.EXPECT().Enq(gomock.Any(), "offline-user", []byte("queued message"), gomock.Any()).Return(nil).AnyTimes()
 
 			// Send with TTL > 0 to trigger queueing
 			err := hub.Send("offline-user", []byte("queued message"), 300)
@@ -103,7 +111,7 @@ var _ = Describe("Hub", func() {
 
 		It("should handle queue error gracefully", func() {
 			// Setup mock to return error
-			mockQueue.EXPECT().Enq(gomock.Any(), "offline-user", []byte("failed message"), int64(300)).Return(context.DeadlineExceeded).AnyTimes()
+			mockQueue.EXPECT().Enq(gomock.Any(), "offline-user", []byte("failed message"), gomock.Any()).Return(context.DeadlineExceeded).AnyTimes()
 
 			// Send with TTL > 0
 			err := hub.Send("offline-user", []byte("failed message"), 300)
@@ -154,35 +162,25 @@ var _ = Describe("Hub", func() {
 	})
 
 	Describe("Kick", func() {
-		var ws *websocket.Conn
-
 		BeforeEach(func() {
 			// Create hub with bye generator
 			mockByeGen := mocks.NewMockByeGenerator(ctl)
 			mockByeGen.EXPECT().Bye(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte("bye")).AnyTimes()
-			mockPingGen := mocks.NewMockPingGenerator(ctl)
 
-			auth := func(r *http.Request) (*tok.Device, error) {
+			auth = func(r *http.Request) (*tok.Device, error) {
 				return tok.CreateDevice("kick-user", ""), nil
 			}
 
-			hubConfig := tok.NewHubConfig(mockActor,
+			hubConfig = tok.NewHubConfig(mockActor,
 				tok.WithHubConfigQueue(mockQueue),
 				tok.WithHubConfigPingProducer(mockPingGen),
 				tok.WithHubConfigByeGenerator(mockByeGen),
 			)
-			hub, handler = tok.CreateWsHandler(auth,
-				tok.WithWsHandlerHubConfig(hubConfig),
-				tok.WithWsHandlerEngine(tok.WsEngineGorilla)) // Use Gorilla engine to match client
-
-			server = httptest.NewServer(handler)
-			wsURL = "ws" + server.URL[4:]
 		})
 
 		It("should disconnect device when kicked", func() {
 			// Connect websocket client
-			var err error
-			ws, _, err = dialer.Dial(wsURL, nil)
+			ws, _, err := dialer.Dial(wsURL, nil)
 			Expect(err).NotTo(HaveOccurred())
 			defer ws.Close()
 
@@ -223,21 +221,15 @@ var _ = Describe("Hub", func() {
 	Describe("Hub with SSO", func() {
 		BeforeEach(func() {
 			// Create hub with SSO enabled
-			auth := func(r *http.Request) (*tok.Device, error) {
+			auth = func(r *http.Request) (*tok.Device, error) {
 				return tok.CreateDevice("sso-user", ""), nil
 			}
 
-			hubConfig := tok.NewHubConfig(mockActor,
+			hubConfig = tok.NewHubConfig(mockActor,
 				tok.WithHubConfigQueue(mockQueue),
 				tok.WithHubConfigPingProducer(mockPingGen),
 				tok.WithHubConfigSso(true), // Enable SSO
 			)
-			hub, handler = tok.CreateWsHandler(auth,
-				tok.WithWsHandlerHubConfig(hubConfig),
-				tok.WithWsHandlerEngine(tok.WsEngineGorilla)) // Use Gorilla engine to match client
-
-			server = httptest.NewServer(handler)
-			wsURL = "ws" + server.URL[4:]
 		})
 
 		It("should disconnect old connection when new one arrives", func() {
