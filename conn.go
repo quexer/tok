@@ -14,16 +14,25 @@ import (
 
 //go:generate mockgen -destination=mocks/conn.go -package=mocks . ConAdapter
 
-// abstract connection,
+// connection represents an abstract connection with thread-safe operations.
+//
+// Lock usage:
+// - stateLock: Protects the 'closed' field and connection lifecycle state
+// - wLock: Ensures write operations are serialized (Write method only)
+// - offlineTriggered: Uses atomic operations, no lock needed
+//
+// Lock ordering (if both needed): Always acquire stateLock before wLock to prevent deadlock
 type connection struct {
-	sync.RWMutex
-	wLock            sync.Mutex         // write lock
+	// stateLock protects the closed field and general connection state
+	stateLock sync.RWMutex
+	// wLock ensures write operations are serialized
+	wLock            sync.Mutex
 	dv               *Device            // device of this connection
 	adapter          ConAdapter         // real connection adapter
 	hub              *Hub               // hub of this connection
-	closed           bool               // connection closed flag
+	closed           bool               // connection closed flag (protected by stateLock)
 	cancelFunc       context.CancelFunc // cancel function for ping goroutine
-	offlineTriggered int32              // ensure offline state change is triggered only once
+	offlineTriggered int32              // ensure offline state change is triggered only once (atomic)
 }
 
 // conState is the state of connection
@@ -60,8 +69,8 @@ func (conn *connection) triggerOffline() {
 }
 
 func (conn *connection) isClosed() bool {
-	conn.RLock()
-	defer conn.RUnlock()
+	conn.stateLock.RLock()
+	defer conn.stateLock.RUnlock()
 	return conn.closed
 }
 
@@ -82,8 +91,8 @@ func (conn *connection) readLoop() {
 }
 
 func (conn *connection) close() {
-	conn.Lock()
-	defer conn.Unlock()
+	conn.stateLock.Lock()
+	defer conn.stateLock.Unlock()
 
 	if conn.closed {
 		return
