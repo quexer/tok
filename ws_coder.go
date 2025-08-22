@@ -2,7 +2,6 @@ package tok
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/coder/websocket"
@@ -26,20 +25,8 @@ func (p *coderWsAdapter) Read() ([]byte, error) {
 		defer cancel()
 	}
 
-	messageType, data, err := p.conn.Read(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// Verify message type matches our configuration
-	if p.txt && messageType != websocket.MessageText {
-		return nil, fmt.Errorf("expected text message, got binary")
-	}
-	if !p.txt && messageType != websocket.MessageBinary {
-		return nil, fmt.Errorf("expected binary message, got text")
-	}
-
-	return data, nil
+	_, data, err := p.conn.Read(ctx)
+	return data, err
 }
 
 func (p *coderWsAdapter) Write(b []byte) error {
