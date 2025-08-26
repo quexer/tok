@@ -343,8 +343,23 @@ func (p *Hub) receive(dv *Device, b []byte) {
 	p.chUp <- &upFrame{dv: dv, data: b}
 }
 
-// initConnection init connection with device and adapter
-func (p *Hub) initConnection(dv *Device, adapter ConAdapter) {
+// RegisterConnection registers a custom connection with the hub.
+// This method allows users to integrate their own connection types (e.g., QUIC, Unix sockets)
+// by implementing the ConAdapter interface.
+//
+// Parameters:
+//   - dv: The authenticated device information
+//   - adapter: The connection adapter implementing the ConAdapter interface
+//
+// The connection will be managed by the hub and will receive messages sent to the device.
+// The hub will handle connection lifecycle, including ping/pong if configured.
+//
+// Example:
+//
+//	adapter := &MyCustomAdapter{conn: customConn}
+//	device := tok.CreateDevice("user123", "session456")
+//	hub.RegisterConnection(device, adapter)
+func (p *Hub) RegisterConnection(dv *Device, adapter ConAdapter) {
 	// create context for this connection
 	ctx, cancel := context.WithCancel(context.Background())
 

@@ -155,7 +155,7 @@ func Listen(hub *Hub, config *HubConfig, addr string, auth TCPAuthFunc) (*Hub, e
 			adapter.readTimeout = 0
 		}
 
-		hub.initConnection(dv, adapter)
+		hub.RegisterConnection(dv, adapter)
 	}
 
 	go func() {

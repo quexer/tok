@@ -42,15 +42,29 @@ func (conn *connection) ShareConn(other *connection) bool {
 	return conn.adapter.ShareConn(other.adapter)
 }
 
-// ConAdapter is adapter for real connection.
-// For now, net.Conn and websocket.Conn are supported.
-// This interface is useful for building test application
-// todo should export this interface, move to internal package
+// ConAdapter is the adapter interface for real connections.
+// Users can implement this interface to support custom connection types beyond the built-in TCP and WebSocket.
+//
+// Implementations must be thread-safe for Write operations, as Write may be called concurrently.
+// Read operations are called sequentially from a single goroutine.
 type ConAdapter interface {
-	Read() ([]byte, error)             // Read payload data from real connection. Unpack from basic data frame
-	Write([]byte) error                // Write payload data to real connection. Pack into basic data frame
-	Close() error                      // Close the real connection
-	ShareConn(adapter ConAdapter) bool // if two adapters share one net connection (tcp/ws)
+	// Read reads the next message from the connection.
+	// Read should block until a message is available or an error occurs.
+	// The returned data should be the complete message payload (not including any protocol framing).
+	Read() ([]byte, error)
+
+	// Write writes a message to the connection.
+	// Write must be thread-safe as it may be called concurrently.
+	// The data parameter is the complete message payload to send.
+	Write(data []byte) error
+
+	// Close closes the connection.
+	// After Close is called, all Read and Write operations should return errors.
+	Close() error
+
+	// ShareConn returns true if this adapter shares the same underlying connection with another adapter.
+	// This is used for connection deduplication in SSO (Single Sign-On) mode.
+	ShareConn(adapter ConAdapter) bool
 }
 
 func (conn *connection) uid() interface{} {
