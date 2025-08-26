@@ -114,7 +114,7 @@ func (p *Hub) run() {
 					ff.chErr <- ErrOffline
 					close(ff.chErr)
 				} else {
-					go p.cache(ff)
+					go p.cache(context.Background(), ff)
 				}
 			}
 		case cf := <-p.chCheck:
@@ -124,7 +124,7 @@ func (p *Hub) run() {
 		case uid := <-p.chReadSignal:
 			// only pop msg for online user
 			if len(p.cons[uid]) > 0 {
-				go p.popMsg(uid)
+				go p.popMsg(context.Background(), uid)
 			}
 		case uid := <-p.chKick:
 			p.innerKick(uid)
@@ -139,11 +139,10 @@ func (p *Hub) run() {
 	}
 }
 
-func (p *Hub) popMsg(uid interface{}) {
+func (p *Hub) popMsg(ctx context.Context, uid interface{}) {
 	if p.config.q == nil {
 		return
 	}
-	ctx := context.TODO()
 	for {
 		b, err := p.config.q.Deq(ctx, uid)
 		if err != nil {
@@ -155,7 +154,7 @@ func (p *Hub) popMsg(uid interface{}) {
 			return
 		}
 		expDeq.Add(1)
-		if err := p.Send(uid, b, 0); err != nil {
+		if err := p.Send(ctx, uid, b, 0); err != nil {
 			if err := p.config.q.Enq(ctx, uid, b); err != nil {
 				slog.Warn("re-cache failed", "err", err, "uid", uid)
 			}
@@ -168,7 +167,7 @@ func (p *Hub) popMsg(uid interface{}) {
 // ttl is expiry seconds. 0 means only send to online user
 // If ttl = 0 and user is offline, ErrOffline will be returned.
 // If ttl > 0 and user is offline or online but send fail, message will be cached for ttl seconds.
-func (p *Hub) Send(to interface{}, b []byte, ttl uint32) error {
+func (p *Hub) Send(ctx context.Context, to interface{}, b []byte, ttl uint32) error {
 
 	ff := &downFrame{uid: to, data: b, ttl: ttl, chErr: make(chan error)}
 	p.chDown <- ff
@@ -181,29 +180,28 @@ func (p *Hub) Send(to interface{}, b []byte, ttl uint32) error {
 
 	if ttl > 0 && err != nil {
 		ff.chErr = make(chan error) // create new channel
-		go p.cache(ff)
+		go p.cache(context.Background(), ff)
 		return <-ff.chErr
 	}
 	return err
 }
 
 // CheckOnline return whether user online or not
-func (p *Hub) CheckOnline(uid interface{}) bool {
+func (p *Hub) CheckOnline(ctx context.Context, uid interface{}) bool {
 	cf := &checkFrame{uid: uid, chBool: make(chan bool)}
 	p.chCheck <- cf
 	return <-cf.chBool
 }
 
 // Online query online user list
-func (p *Hub) Online() []interface{} {
+func (p *Hub) Online(ctx context.Context) []interface{} {
 	ch := make(chan []interface{})
 	p.chQueryOnline <- ch
 	return <-ch
 }
 
-func (p *Hub) cache(ff *downFrame) {
+func (p *Hub) cache(ctx context.Context, ff *downFrame) {
 	defer close(ff.chErr)
-	ctx := context.TODO()
 	expEnq.Add(1)
 	if p.config.q == nil {
 		ff.chErr <- fmt.Errorf("%w: %w", ErrCacheFailed, ErrQueueRequired)
@@ -296,7 +294,7 @@ func (p *Hub) close(conn *connection) {
 
 func (p *Hub) goOnline(conn *connection) {
 	defer func() {
-		go p.tryDeliver(conn.uid())
+		go p.tryDeliver(context.Background(), conn.uid())
 	}()
 
 	l := p.cons[conn.uid()]
@@ -325,12 +323,12 @@ func (p *Hub) goOnline(conn *connection) {
 }
 
 // tryDeliver try to deliver all messages, if uid is online
-func (p *Hub) tryDeliver(uid interface{}) {
+func (p *Hub) tryDeliver(ctx context.Context, uid interface{}) {
 	p.chReadSignal <- uid
 }
 
 // Kick all connections of uid
-func (p *Hub) Kick(uid interface{}) {
+func (p *Hub) Kick(ctx context.Context, uid interface{}) {
 	p.chKick <- uid
 }
 
@@ -359,9 +357,9 @@ func (p *Hub) receive(dv *Device, b []byte) {
 //	adapter := &MyCustomAdapter{conn: customConn}
 //	device := tok.CreateDevice("user123", "session456")
 //	hub.RegisterConnection(device, adapter)
-func (p *Hub) RegisterConnection(dv *Device, adapter ConAdapter) {
+func (p *Hub) RegisterConnection(ctx context.Context, dv *Device, adapter ConAdapter) {
 	// create context for this connection
-	ctx, cancel := context.WithCancel(context.Background())
+	connCtx, cancel := context.WithCancel(ctx)
 
 	conn := &connection{
 		dv:         dv,
@@ -380,7 +378,7 @@ func (p *Hub) RegisterConnection(dv *Device, adapter ConAdapter) {
 			defer ticker.Stop()
 			for {
 				select {
-				case <-ctx.Done():
+				case <-connCtx.Done():
 					return
 				case <-ticker.C:
 					// Use the optional BeforeSend function if provided

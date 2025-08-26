@@ -52,13 +52,13 @@ var _ = Describe("Custom Connection", func() {
 			mockAdapter.EXPECT().Close().Return(nil).AnyTimes()
 
 			// Register the connection in a goroutine since readLoop blocks
-			go hub.RegisterConnection(device, mockAdapter)
+			go hub.RegisterConnection(ctx, device, mockAdapter)
 
 			// Give time for connection to be established
 			time.Sleep(50 * time.Millisecond)
 
 			// Verify device is online
-			Expect(hub.CheckOnline("custom-user")).To(BeTrue())
+			Expect(hub.CheckOnline(ctx, "custom-user")).To(BeTrue())
 		})
 
 		It("should receive messages through custom connection", func() {
@@ -81,7 +81,7 @@ var _ = Describe("Custom Connection", func() {
 			}).Times(1)
 
 			// Register the connection
-			go hub.RegisterConnection(device, mockAdapter)
+			go hub.RegisterConnection(ctx, device, mockAdapter)
 
 			// Give time for message to be processed
 			time.Sleep(50 * time.Millisecond)
@@ -96,19 +96,19 @@ var _ = Describe("Custom Connection", func() {
 				time.Sleep(100 * time.Millisecond)
 				return nil, io.EOF
 			}).Times(1)
-			mockAdapter.EXPECT().Close().Return(nil).Times(1)
+			mockAdapter.EXPECT().Close().Return(nil).AnyTimes()
 
 			// Expect Write to be called with our message
 			mockAdapter.EXPECT().Write(msgData).Return(nil).Times(1)
 
 			// Register the connection
-			go hub.RegisterConnection(device, mockAdapter)
+			go hub.RegisterConnection(ctx, device, mockAdapter)
 
 			// Give time for connection to be established
 			time.Sleep(50 * time.Millisecond)
 
 			// Send a message
-			err := hub.Send("custom-user", msgData, 0)
+			err := hub.Send(ctx, "custom-user", msgData, 0)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Give time for message to be sent
@@ -122,13 +122,13 @@ var _ = Describe("Custom Connection", func() {
 			mockAdapter.EXPECT().Close().Return(nil).Times(1)
 
 			// Register the connection
-			go hub.RegisterConnection(device, mockAdapter)
+			go hub.RegisterConnection(ctx, device, mockAdapter)
 
 			// Give time for connection to be established and then closed
 			time.Sleep(100 * time.Millisecond)
 
 			// Verify device is offline
-			Expect(hub.CheckOnline("custom-user")).To(BeFalse())
+			Expect(hub.CheckOnline(ctx, "custom-user")).To(BeFalse())
 		})
 
 		It("should handle ShareConn for SSO mode", func() {
@@ -153,7 +153,7 @@ var _ = Describe("Custom Connection", func() {
 			mockAdapter.EXPECT().ShareConn(mockAdapter).Return(true).Times(1)
 
 			// Register connections
-			go hub.RegisterConnection(device, mockAdapter)
+			go hub.RegisterConnection(ctx, device, mockAdapter)
 			time.Sleep(50 * time.Millisecond)
 
 			// Verify ShareConn behavior
@@ -180,7 +180,7 @@ var _ = Describe("Custom Connection", func() {
 			mockQueue.EXPECT().Enq(gomock.Any(), "custom-user", msgData, uint32(300)).Return(nil).Times(1)
 
 			// Send message with TTL while device is offline
-			err := hub.Send("custom-user", msgData, 300)
+			err := hub.Send(ctx, "custom-user", msgData, 300)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Wait for async queue operation

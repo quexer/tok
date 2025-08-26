@@ -78,7 +78,7 @@ var _ = Describe("Hub", func() {
 			time.Sleep(50 * time.Millisecond)
 
 			// Send message through hub
-			err = hub.Send(uid, []byte("test message"), 0)
+			err = hub.Send(ctx, uid, []byte("test message"), 0)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Read message from websocket
@@ -89,7 +89,7 @@ var _ = Describe("Hub", func() {
 
 		It("should return error when device is offline and no queue", func() {
 			// No websocket connection established
-			err := hub.Send("offline-user", []byte("test message"), 0)
+			err := hub.Send(ctx, "offline-user", []byte("test message"), 0)
 			Expect(err).To(Equal(tok.ErrOffline))
 		})
 
@@ -98,7 +98,7 @@ var _ = Describe("Hub", func() {
 			mockQueue.EXPECT().Enq(gomock.Any(), "offline-user", []byte("queued message"), gomock.Any())
 
 			// Send with TTL > 0 to trigger queueing
-			err := hub.Send("offline-user", []byte("queued message"), 300)
+			err := hub.Send(ctx, "offline-user", []byte("queued message"), 300)
 			Expect(err).NotTo(HaveOccurred())
 
 		})
@@ -108,14 +108,14 @@ var _ = Describe("Hub", func() {
 			mockQueue.EXPECT().Enq(gomock.Any(), "offline-user", []byte("failed message"), gomock.Any()).Return(context.DeadlineExceeded).AnyTimes()
 
 			// Send with TTL > 0
-			err := hub.Send("offline-user", []byte("failed message"), 300)
+			err := hub.Send(ctx, "offline-user", []byte("failed message"), 300)
 			Expect(err).To(HaveOccurred()) // Send returns nil even if queue fails
 		})
 	})
 
 	Describe("CheckOnline", func() {
 		It("should return false when device is offline", func() {
-			online := hub.CheckOnline("offline-user")
+			online := hub.CheckOnline(ctx, "offline-user")
 			Expect(online).To(BeFalse())
 		})
 
@@ -129,14 +129,14 @@ var _ = Describe("Hub", func() {
 			// Give connection time to establish
 			time.Sleep(50 * time.Millisecond)
 
-			online := hub.CheckOnline(uid)
+			online := hub.CheckOnline(ctx, uid)
 			Expect(online).To(BeTrue())
 		})
 	})
 
 	Describe("Online", func() {
 		It("should return empty list when no devices online", func() {
-			devices := hub.Online()
+			devices := hub.Online(ctx)
 			Expect(devices).To(BeEmpty())
 		})
 
@@ -150,7 +150,7 @@ var _ = Describe("Hub", func() {
 			// Give connection time to establish
 			time.Sleep(50 * time.Millisecond)
 
-			userList := hub.Online()
+			userList := hub.Online(ctx)
 			Expect(userList).To(Equal([]any{uid}))
 		})
 	})
@@ -179,10 +179,10 @@ var _ = Describe("Hub", func() {
 			time.Sleep(50 * time.Millisecond)
 
 			// Verify device is online
-			Expect(hub.CheckOnline(uid)).To(BeTrue())
+			Expect(hub.CheckOnline(ctx, uid)).To(BeTrue())
 
 			// Kick the device
-			hub.Kick(uid)
+			hub.Kick(ctx, uid)
 
 			// Try to read bye message or handle close
 			_, msg, err := ws.ReadMessage()
@@ -200,12 +200,12 @@ var _ = Describe("Hub", func() {
 			time.Sleep(50 * time.Millisecond)
 
 			// Verify device is offline
-			Expect(hub.CheckOnline(uid)).To(BeFalse())
+			Expect(hub.CheckOnline(ctx, uid)).To(BeFalse())
 		})
 
 		It("should handle kicking offline device gracefully", func() {
 			// No error should occur when kicking offline device
-			hub.Kick("offline-user")
+			hub.Kick(ctx, "offline-user")
 		})
 	})
 
@@ -241,7 +241,7 @@ var _ = Describe("Hub", func() {
 			Expect(err).To(HaveOccurred())
 
 			// Second connection should work fine
-			err = hub.Send(uid, []byte("test"), 0)
+			err = hub.Send(ctx, uid, []byte("test"), 0)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, msg, err := ws2.ReadMessage()

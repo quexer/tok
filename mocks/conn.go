@@ -84,15 +84,15 @@ func (mr *MockConAdapterMockRecorder) ShareConn(adapter any) *gomock.Call {
 }
 
 // Write mocks base method.
-func (m *MockConAdapter) Write(arg0 []byte) error {
+func (m *MockConAdapter) Write(data []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Write", arg0)
+	ret := m.ctrl.Call(m, "Write", data)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Write indicates an expected call of Write.
-func (mr *MockConAdapterMockRecorder) Write(arg0 any) *gomock.Call {
+func (mr *MockConAdapterMockRecorder) Write(data any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Write", reflect.TypeOf((*MockConAdapter)(nil).Write), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Write", reflect.TypeOf((*MockConAdapter)(nil).Write), data)
 }

@@ -36,7 +36,7 @@ func (p *WsHandler) hdlFromXwebSocket() xwebsocket.Handler {
 			slog.Warn("websocket auth err", "err", err)
 			_ = adapter.Close()
 		} else {
-			p.hub.RegisterConnection(dv, adapter)
+			p.hub.RegisterConnection(context.Background(), dv, adapter)
 		}
 	}
 }
@@ -67,7 +67,7 @@ func (p *WsHandler) hdlFromGorillaWebSocket() http.HandlerFunc {
 			slog.Warn("gorilla websocket auth err", "err", err)
 			_ = adapter.Close()
 		} else {
-			p.hub.RegisterConnection(dv, adapter)
+			p.hub.RegisterConnection(context.Background(), dv, adapter)
 		}
 	}
 }
@@ -94,7 +94,7 @@ func (p *WsHandler) hdlFromCoderWebSocket() http.HandlerFunc {
 			slog.Warn("coder websocket auth err", "err", err)
 			_ = adapter.Close()
 		} else {
-			p.hub.RegisterConnection(dv, adapter)
+			p.hub.RegisterConnection(context.Background(), dv, adapter)
 		}
 	}
 }

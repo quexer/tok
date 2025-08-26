@@ -6,6 +6,7 @@ package tok
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -155,7 +156,7 @@ func Listen(hub *Hub, config *HubConfig, addr string, auth TCPAuthFunc) (*Hub, e
 			adapter.readTimeout = 0
 		}
 
-		hub.RegisterConnection(dv, adapter)
+		hub.RegisterConnection(context.Background(), dv, adapter)
 	}
 
 	go func() {
