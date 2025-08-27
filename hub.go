@@ -179,9 +179,16 @@ func (p *Hub) Send(ctx context.Context, to interface{}, b []byte, ttl uint32) er
 	}
 
 	if ttl > 0 && err != nil {
-		ff.chErr = make(chan error) // create new channel
-		go p.cache(context.Background(), ff)
-		return <-ff.chErr
+		// Create a new downFrame for caching to avoid channel reuse issues
+		cacheFF := &downFrame{
+			uid:   ff.uid,
+			data:  ff.data,
+			ttl:   ff.ttl,
+			chErr: make(chan error),
+		}
+		// Use the passed context instead of Background()
+		go p.cache(ctx, cacheFF)
+		return <-cacheFF.chErr
 	}
 	return err
 }

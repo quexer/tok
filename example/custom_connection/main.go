@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -141,7 +142,7 @@ func handleUnixConnection(hub *tok.Hub, conn net.Conn) {
 	device := tok.CreateDevice(string(authData), "unix-session")
 
 	// Register the connection with hub
-	hub.RegisterConnection(device, adapter)
+	hub.RegisterConnection(context.Background(), device, adapter)
 
 	fmt.Printf("User %s connected via Unix socket\n", device.UID())
 }
