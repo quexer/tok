@@ -12,7 +12,7 @@ Features
 --------
 
 - Supports both TCP and WebSocket servers for flexible IM application deployment.
-- Modular design: core logic is decoupled from network adapters, making it easy to extend or customize.
+- Modular design: pluggable network adapters(ConAdapter interface), making it easy to extend or customize.
 - Simple API for creating hubs, managing connections, and handling messages.
 - Built-in memory queue for offline message caching, with pluggable queue interface.
 - Supports single sign-on (SSO) to ensure only one active connection per user.
@@ -35,73 +35,106 @@ You can select the engine via configuration options. Future engines can be added
 Architecture
 ------------
 
-```mermaid
-graph TB
-    subgraph "Client Applications"
-        C1[TCP Client]
-        C2[WebSocket Client]
-    end
-    
-    subgraph "Network Layer"
-        TCP[TCP Server<br/>tcp_conn.go]
-        WS[WebSocket Server<br/>ws_conn.go]
-        
-        subgraph "WebSocket Engines"
-            WSX[x/net/websocket<br/>ws_x.go]
-            WSG[gorilla/websocket<br/>ws_gorilla.go]
-            WSC[coder/websocket<br/>ws_coder.go]
-        end
-    end
-    
-    subgraph "Core Layer"
-        Hub[Hub<br/>hub.go]
-        HubConfig[Hub Config<br/>hub_config.go]
-        Actor[Actor Interface<br/>tok.go]
-        Device[Device<br/>device.go]
-    end
-    
-    subgraph "Message Queue"
-        Queue[Queue Interface<br/>q.go]
-        MemQ[Memory Queue<br/>memory_q.go]
-    end
-    
-    subgraph "Handlers"
-        BR[BeforeReceiveHandler]
-        BS[BeforeSendHandler]
-        AS[AfterSendHandler]
-        CH[CloseHandler]
-        PG[PingGenerator]
-        BG[ByeGenerator]
-    end
-    
-    C1 -->|TCP| TCP
-    C2 -->|WebSocket| WS
-    
-    WS --> WSX
-    WS --> WSG
-    WS --> WSC
-    
-    TCP --> Hub
-    WSX --> Hub
-    WSG --> Hub
-    WSC --> Hub
-    
-    Hub --> Actor
-    Hub --> Device
-    Hub --> Queue
-    Hub --> HubConfig
-    
-    Queue -.->|implements| MemQ
-    
-    Actor -.->|optional| BR
-    Actor -.->|optional| BS
-    Actor -.->|optional| AS
-    Actor -.->|optional| CH
-    Actor -.->|optional| PG
-    Actor -.->|optional| BG
-    
-    style Hub fill:#e74c3c,stroke:#333,stroke-width:4px,color:#fff
-    style Actor fill:#3498db,stroke:#333,stroke-width:2px,color:#fff
+```
+                          Tok Framework Architecture
+                         ===============================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                             Client Layer                                │
+└─────────────┬─────────────────┬─────────────────┬───────────────────────┘
+              │                 │                 │
+         TCP Client       WebSocket Client   Custom Client
+              │                 │                 │
+┌─────────────┴─────────────────┴─────────────────┴───────────────────────┐
+│                          Network Layer                                  │
+│                                                                         │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐          │
+│  │   tcpAdapter    │  │   wsAdapter     │  │  CustomAdapter  │          │
+│  │                 │  │  (x/gorilla/    │  │                 │          │
+│  │   - Read()      │  │   coder)        │  │   - Read()      │          │
+│  │   - Write()     │  │   - Read()      │  │   - Write()     │          │
+│  │   - Close()     │  │   - Write()     │  │   - Close()     │          │
+│  │   - ShareConn() │  │   - Close()     │  │   - ShareConn() │          │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘          │
+│                                                                         │
+└─────────────┬─────────────────┬─────────────────┬───────────────────────┘
+              │                 │                 │
+              └─────────────────┼─────────────────┘
+                                │
+                        ConAdapter Interface
+                                │
+┌───────────────────────────────┴─────────────────────────────────────────┐
+│                          Connection Layer                               │
+│                                                                         │
+│    ┌─────────────────────────────────────────────────────────────────┐  │
+│    │                        connection                               │  │
+│    │                                                                 │  │
+│    │    - adapter: ConAdapter                                        │  │
+│    │    - dv: *Device (User + Device metadata)                       │  │
+│    │    - hub: *Hub                                                  │  │
+│    │    - readLoop()      ← blocking read                            │  │
+│    │    - Write()         ← thread-safe write                        │  │
+│    │    - triggerOffline() ← atomic state change                     │  │
+│    │                                                                 │  │
+│    └─────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │
+┌───────────────────────────────┴─────────────────────────────────────────┐
+│                        Hub (Message Dispatcher)                         │
+│                                                                         │
+│  Channel-based Architecture:                                            │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │  chUp          ← upstream messages                                │  │
+│  │  chDown        ← downstream messages                              │  │
+│  │  chConState    ← connection state changes                         │  │
+│  │  chReadSignal  ← trigger offline message delivery                 │  │
+│  │  chKick        ← kick user connections                            │  │
+│  │  chCheck       ← online status queries                            │  │
+│  │  chQueryOnline ← get online user list                             │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+│  Connection Management:                                                 │
+│  cons map[interface{}][]*connection  ← user_id -> connections           │
+│                                                                         │
+│  Features:                                                              │
+│  • SSO (Single Sign-On) support                                         │
+│  • Server-side ping with configurable intervals                         │
+│  • Read/Write timeout management                                        │
+│  • Message caching via Queue interface                                  │
+│                                                                         │
+└─────────────┬─────────────────────────────────────┬─────────────────────┘
+              │                                     │
+┌─────────────┴─────────────────────────────────────┴─────────────────────┐
+│                       Business Logic Layer                              │
+│                                                                         │
+│ ┌─────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐   │
+│ │     Actor       │  │ Optional Handlers   │  │      Queue          │   │
+│ │                 │  │                     │  │    Interface        │   │
+│ │  OnReceive()    │  │  BeforeReceive      │  │                     │   │
+│ │  (Required)     │  │  BeforeSend         │  │  Enq() / Deq()      │   │
+│ │                 │  │  AfterSend          │  │                     │   │
+│ │                 │  │  CloseHandler       │  │  MemoryQueue        │   │
+│ │                 │  │  PingGenerator      │  │  (built-in)         │   │
+│ │                 │  │  ByeGenerator       │  │                     │   │
+│ └─────────────────┘  └─────────────────────┘  └─────────────────────┘   │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+                               Message Flow
+                              ===============
+
+    Upstream (Client → Server):
+    Client → Adapter → Connection → Hub → Actor.OnReceive()
+
+    Downstream (Server → Client):
+    Hub.Send() → Connection → Adapter → Client
+
+    Connection Lifecycle:
+    Connect → Auth → RegisterConnection → readLoop (blocking)
+            → goOnline → Ping Loop (if enabled)
+            → goOffline → Close → Cleanup
+
 ```
 
 Structure
