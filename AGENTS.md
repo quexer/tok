@@ -122,6 +122,7 @@ func WithHubConfigQueue(q Queue) HubConfigOption {
 - Use `BeforeEach`, `JustBeforeEach`, `AfterEach` for test lifecycle
 - Use `Describe`, `It`, `Context` for test organization
 - Use `gomock.Controller` for mock management in BeforeEach
+- Prefer positive assertions (e.g., `Expect(err).To(Succeed())` instead of `Expect(err).NotTo(HaveOccurred())`)
 
 ### Interface Design
 - Prefer small, focused interfaces
