@@ -364,6 +364,7 @@ func (p *Hub) byeThenClose(kicker *Device, conn *connection) {
 	data, err := p.beforeSend(conn.dv, byeData)
 	if err != nil {
 		slog.Warn("[tok] before send bye failed", "err", err)
+		return
 	}
 	if err := conn.Write(data); err != nil {
 		slog.Warn("[tok] write bye failed", "err", err)
