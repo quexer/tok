@@ -30,6 +30,7 @@ func (p *WsHandler) hdlFromXwebSocket() xwebsocket.Handler {
 			conn:         ws,
 			txt:          p.txt,
 			writeTimeout: p.hubConfig.writeTimeout,
+			readTimeout:  p.hubConfig.readTimeout,
 		}
 
 		if dv, err := p.auth(ws.Request()); err != nil {
