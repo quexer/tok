@@ -5,7 +5,7 @@ This guide helps agentic coding assistants understand and work with this codebas
 ## Build, Lint, and Test Commands
 
 ```bash
-# Build the project
+# Build the project (also runs tests)
 make build
 
 # Format and tidy code
@@ -14,11 +14,11 @@ make fmt
 # Generate mocks
 make mock
 
-# Run all tests
+# Run all tests (includes fmt and mock)
 make test
 
 # Run a single test file
-ginkgo -r <test_file_name>
+ginkgo -r <test_file_path>
 
 # Run a specific test spec
 ginkgo -r -focus="<Describe>/<It>"
@@ -167,11 +167,14 @@ func (p *Hub) Send(ctx context.Context, to interface{}, b []byte, ttl uint32) er
 - `conn.go` - Connection wrapper and ConAdapter interface
 - `tcp_conn.go` - TCP adapter
 - `ws_conn.go`, `ws_gorilla.go`, `ws_x.go`, `ws_coder.go` - WebSocket adapters
+- `ws_option.go` - WebSocket engine selection and handler options
 - `device.go` - Device abstraction
 - `q.go` - Queue interface
 - `memory_q.go` - In-memory queue implementation
+- `doc.go` - Package documentation
 - `mocks/` - Generated mocks
 - `example/` - Example implementations
+- `internal/` - Internal implementation details
 
 ### Before Committing
 Always run:
