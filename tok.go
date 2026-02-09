@@ -13,6 +13,9 @@ import (
 // ErrOffline occurs while sending message to online user only. see Hub.Send
 var ErrOffline = errors.New("tok: offline")
 
+// ErrHubClosed occurs when operating on a closed hub
+var ErrHubClosed = errors.New("tok: hub closed")
+
 // ErrQueueRequired occurs while sending "cacheable" message without queue
 var ErrQueueRequired = errors.New("tok: queue is required")
 

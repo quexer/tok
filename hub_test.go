@@ -62,6 +62,7 @@ var _ = Describe("Hub", func() {
 	})
 
 	AfterEach(func() {
+		hub.Close()
 		server.Close()
 	})
 
@@ -247,6 +248,77 @@ var _ = Describe("Hub", func() {
 			_, msg, err := ws2.ReadMessage()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(msg).To(Equal([]byte("test")))
+		})
+	})
+
+	Describe("Close", func() {
+		It("should return ErrHubClosed from Send after Close", func() {
+			hub.Close()
+
+			err := hub.Send(ctx, uid, []byte("test"), 0)
+			Expect(err).To(Equal(tok.ErrHubClosed))
+		})
+
+		It("should return false from CheckOnline after Close", func() {
+			mockQueue.EXPECT().Deq(gomock.Any(), gomock.Any())
+			// Connect websocket client
+			ws, _, err := dialer.Dial(wsURL, nil)
+			Expect(err).NotTo(HaveOccurred())
+			defer ws.Close()
+
+			// Give connection time to establish
+			time.Sleep(50 * time.Millisecond)
+
+			// Verify device is online before close
+			Expect(hub.CheckOnline(ctx, uid)).To(BeTrue())
+
+			hub.Close()
+
+			// After close, CheckOnline should return false
+			Expect(hub.CheckOnline(ctx, uid)).To(BeFalse())
+		})
+
+		It("should return empty from Online after Close", func() {
+			mockQueue.EXPECT().Deq(gomock.Any(), gomock.Any())
+			// Connect websocket client
+			ws, _, err := dialer.Dial(wsURL, nil)
+			Expect(err).NotTo(HaveOccurred())
+			defer ws.Close()
+
+			// Give connection time to establish
+			time.Sleep(50 * time.Millisecond)
+
+			// Verify there are online users before close
+			Expect(hub.Online(ctx)).NotTo(BeEmpty())
+
+			hub.Close()
+
+			// After close, Online should return nil
+			Expect(hub.Online(ctx)).To(BeNil())
+		})
+
+		It("should disconnect existing connections on Close", func() {
+			mockQueue.EXPECT().Deq(gomock.Any(), gomock.Any())
+			// Connect websocket client
+			ws, _, err := dialer.Dial(wsURL, nil)
+			Expect(err).NotTo(HaveOccurred())
+			defer ws.Close()
+
+			// Give connection time to establish
+			time.Sleep(50 * time.Millisecond)
+
+			hub.Close()
+
+			// WebSocket client should get read error since connection was closed
+			_, _, err = ws.ReadMessage()
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should be safe to call Close multiple times", func() {
+			// Close multiple times should not panic
+			hub.Close()
+			hub.Close()
+			hub.Close()
 		})
 	})
 })

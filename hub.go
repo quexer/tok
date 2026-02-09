@@ -45,7 +45,10 @@ type Hub struct {
 	chKick        chan interface{}
 	chQueryOnline chan chan []interface{}
 	chCheck       chan *checkFrame
-	config        *HubConfig // config for hub
+	config        *HubConfig         // config for hub
+	ctx           context.Context    // hub lifecycle context
+	cancel        context.CancelFunc // cancel function to trigger shutdown
+	done          chan struct{}      // closed when run() exits
 }
 
 func createHub(config *HubConfig) *Hub {
@@ -58,6 +61,7 @@ func createHub(config *HubConfig) *Hub {
 		}
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
 	hub := &Hub{
 		cons:          make(map[interface{}][]*connection),
 		chUp:          make(chan *upFrame),
@@ -68,15 +72,38 @@ func createHub(config *HubConfig) *Hub {
 		chQueryOnline: make(chan chan []interface{}),
 		chCheck:       make(chan *checkFrame),
 		config:        config,
+		ctx:           ctx,
+		cancel:        cancel,
+		done:          make(chan struct{}),
 	}
 	go hub.run()
 	return hub
 }
 
+// Close gracefully shuts down the hub.
+// It closes all managed connections, triggers close handlers, and stops the run loop.
+// Close blocks until the run loop has fully exited.
+// It is safe to call Close multiple times.
+func (p *Hub) Close() {
+	p.cancel()
+	<-p.done
+}
+
 func (p *Hub) run() {
+	defer close(p.done)
+
 	for {
 
 		select {
+		case <-p.ctx.Done():
+			// graceful shutdown: close all connections
+			for _, conns := range p.cons {
+				for _, conn := range conns {
+					p.close(conn)
+				}
+			}
+			p.cons = make(map[interface{}][]*connection)
+			return
 		case state := <-p.chConState:
 			slog.Debug("connection state change", "online", state.online, "con", &state.con)
 
@@ -167,11 +194,26 @@ func (p *Hub) popMsg(ctx context.Context, uid interface{}) {
 // ttl is expiry seconds. 0 means only send to online user
 // If ttl = 0 and user is offline, ErrOffline will be returned.
 // If ttl > 0 and user is offline or online but send fail, message will be cached for ttl seconds.
+// Returns ErrHubClosed if the hub has been closed.
 func (p *Hub) Send(ctx context.Context, to interface{}, b []byte, ttl uint32) error {
 
-	ff := &downFrame{uid: to, data: b, ttl: ttl, chErr: make(chan error)}
-	p.chDown <- ff
-	err := <-ff.chErr
+	ff := &downFrame{uid: to, data: b, ttl: ttl, chErr: make(chan error, 1)}
+	select {
+	case p.chDown <- ff:
+	case <-p.ctx.Done():
+		return ErrHubClosed
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
+	var err error
+	select {
+	case err = <-ff.chErr:
+	case <-p.ctx.Done():
+		return ErrHubClosed
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 
 	// if cache failed, return err directly
 	if errors.Is(err, ErrCacheFailed) {
@@ -184,27 +226,65 @@ func (p *Hub) Send(ctx context.Context, to interface{}, b []byte, ttl uint32) er
 			uid:   ff.uid,
 			data:  ff.data,
 			ttl:   ff.ttl,
-			chErr: make(chan error),
+			chErr: make(chan error, 1),
 		}
 		// Use the passed context instead of Background()
 		go p.cache(ctx, cacheFF)
-		return <-cacheFF.chErr
+
+		select {
+		case cacheErr := <-cacheFF.chErr:
+			return cacheErr
+		case <-p.ctx.Done():
+			return ErrHubClosed
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 	return err
 }
 
-// CheckOnline return whether user online or not
+// CheckOnline return whether user online or not.
+// Returns false if the hub has been closed.
 func (p *Hub) CheckOnline(ctx context.Context, uid interface{}) bool {
-	cf := &checkFrame{uid: uid, chBool: make(chan bool)}
-	p.chCheck <- cf
-	return <-cf.chBool
+	cf := &checkFrame{uid: uid, chBool: make(chan bool, 1)}
+	select {
+	case p.chCheck <- cf:
+	case <-p.ctx.Done():
+		return false
+	case <-ctx.Done():
+		return false
+	}
+
+	select {
+	case online := <-cf.chBool:
+		return online
+	case <-p.ctx.Done():
+		return false
+	case <-ctx.Done():
+		return false
+	}
 }
 
-// Online query online user list
+// Online query online user list.
+// Returns nil if the hub has been closed.
 func (p *Hub) Online(ctx context.Context) []interface{} {
-	ch := make(chan []interface{})
-	p.chQueryOnline <- ch
-	return <-ch
+	ch := make(chan []interface{}, 1)
+	select {
+	case p.chQueryOnline <- ch:
+	case <-p.ctx.Done():
+		return nil
+	case <-ctx.Done():
+		return nil
+	}
+
+	select {
+	case result := <-ch:
+		return result
+	case <-p.ctx.Done():
+		return nil
+	case <-ctx.Done():
+		return nil
+	}
 }
 
 func (p *Hub) cache(ctx context.Context, ff *downFrame) {
@@ -331,21 +411,35 @@ func (p *Hub) goOnline(conn *connection) {
 
 // tryDeliver try to deliver all messages, if uid is online
 func (p *Hub) tryDeliver(ctx context.Context, uid interface{}) {
-	p.chReadSignal <- uid
+	select {
+	case p.chReadSignal <- uid:
+	case <-p.ctx.Done():
+	}
 }
 
-// Kick all connections of uid
+// Kick all connections of uid.
+// No-op if the hub has been closed.
 func (p *Hub) Kick(ctx context.Context, uid interface{}) {
-	p.chKick <- uid
+	select {
+	case p.chKick <- uid:
+	case <-p.ctx.Done():
+	case <-ctx.Done():
+	}
 }
 
 func (p *Hub) stateChange(conn *connection, online bool) {
-	p.chConState <- &conState{conn, online}
+	select {
+	case p.chConState <- &conState{conn, online}:
+	case <-p.ctx.Done():
+	}
 }
 
 // receive data from user
 func (p *Hub) receive(dv *Device, b []byte) {
-	p.chUp <- &upFrame{dv: dv, data: b}
+	select {
+	case p.chUp <- &upFrame{dv: dv, data: b}:
+	case <-p.ctx.Done():
+	}
 }
 
 // RegisterConnection registers a custom connection with the hub.
