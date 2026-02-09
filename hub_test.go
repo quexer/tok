@@ -2,6 +2,8 @@ package tok_test
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"time"
@@ -251,6 +253,17 @@ var _ = Describe("Hub", func() {
 		})
 	})
 
+	newBlockingAdapter := func() *mocks.MockConAdapter {
+		a := mocks.NewMockConAdapter(ctl)
+		a.EXPECT().Read().DoAndReturn(func() ([]byte, error) {
+			time.Sleep(500 * time.Millisecond)
+			return nil, io.EOF
+		}).AnyTimes()
+		a.EXPECT().Close().Return(nil).AnyTimes()
+		a.EXPECT().ShareConn(gomock.Any()).Return(false).AnyTimes()
+		return a
+	}
+
 	Describe("Close", func() {
 		It("should return ErrHubClosed from Send after Close", func() {
 			hub.Close()
@@ -319,6 +332,43 @@ var _ = Describe("Hub", func() {
 			hub.Close()
 			hub.Close()
 			hub.Close()
+		})
+	})
+
+	Describe("byeThenClose", func() {
+		BeforeEach(func() {
+			mockQueue.EXPECT().Deq(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+			mockPingGen.EXPECT().Ping().Return([]byte("ping")).AnyTimes()
+
+			mockBeforeSend := mocks.NewMockBeforeSendHandler(ctl)
+			mockBeforeSend.EXPECT().BeforeSend(gomock.Any(), gomock.Any()).
+				Return(nil, fmt.Errorf("encode error")).AnyTimes()
+
+			mockByeGen := mocks.NewMockByeGenerator(ctl)
+			mockByeGen.EXPECT().Bye(gomock.Any(), gomock.Any(), gomock.Any()).
+				Return([]byte("bye")).AnyTimes()
+
+			hubConfig = tok.NewHubConfig(mockActor,
+				tok.WithHubConfigQueue(mockQueue),
+				tok.WithHubConfigPingProducer(mockPingGen),
+				tok.WithHubConfigSso(true),
+				tok.WithHubConfigBeforeSend(mockBeforeSend),
+				tok.WithHubConfigByeGenerator(mockByeGen),
+			)
+		})
+
+		It("should not write when beforeSend returns error", func() {
+			// No Write expectation on adapter1.
+			// If Write is called, gomock will report "unexpected call" and fail.
+			adapter1 := newBlockingAdapter()
+			adapter2 := newBlockingAdapter()
+
+			go hub.RegisterConnection(ctx, tok.CreateDevice("sso-user", "device-1"), adapter1)
+			time.Sleep(50 * time.Millisecond)
+
+			// Same UID triggers byeThenClose on first connection
+			go hub.RegisterConnection(ctx, tok.CreateDevice("sso-user", "device-2"), adapter2)
+			time.Sleep(100 * time.Millisecond)
 		})
 	})
 })
