@@ -36,7 +36,9 @@ var _ = Describe("Custom Connection", func() {
 		config := tok.NewHubConfig(mockActor,
 			tok.WithHubConfigPingProducer(mockPing),
 			tok.WithHubConfigQueue(mockQueue))
-		hub, _ = tok.CreateWsHandler(nil, tok.WithWsHandlerHubConfig(config))
+		var err error
+		hub, _, err = tok.CreateWsHandler(ctx, nil, tok.WithWsHandlerHubConfig(config))
+		Expect(err).NotTo(HaveOccurred())
 
 		device = tok.CreateDevice("custom-user", "custom-session")
 	})
@@ -172,7 +174,9 @@ var _ = Describe("Custom Connection", func() {
 			config := tok.NewHubConfig(mockActor,
 				tok.WithHubConfigPingProducer(mockPing),
 				tok.WithHubConfigQueue(mockQueue))
-			hub, _ = tok.CreateWsHandler(nil, tok.WithWsHandlerHubConfig(config))
+			var err error
+			hub, _, err = tok.CreateWsHandler(ctx, nil, tok.WithWsHandlerHubConfig(config))
+			Expect(err).NotTo(HaveOccurred())
 
 			// Setup expectations
 			msgData := []byte("offline message")
@@ -180,7 +184,7 @@ var _ = Describe("Custom Connection", func() {
 			mockQueue.EXPECT().Enq(gomock.Any(), "custom-user", msgData, uint32(300)).Return(nil).Times(1)
 
 			// Send message with TTL while device is offline
-			err := hub.Send(ctx, "custom-user", msgData, 300)
+			err = hub.Send(ctx, "custom-user", msgData, 300)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Wait for async queue operation

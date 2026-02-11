@@ -10,18 +10,13 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"net"
 	"time"
 )
 
 const (
-	tcpHeaderLen = 4
-)
-
-var (
-	// TCPMaxPackLen upper limit for single message
+	tcpHeaderLen         = 4
 	TCPMaxPackLen uint32 = 4 * 1024 * 1024
 )
 
@@ -108,18 +103,15 @@ func (p *tcpAdapter) ShareConn(adapter ConAdapter) bool {
 // addr is the tcp address to be listened on.
 // auth function is used for user authorization
 // return error if listen failed.
-func Listen(hub *Hub, config *HubConfig, addr string, auth TCPAuthFunc) (*Hub, error) {
-	if config != nil {
-		hub = createHub(config)
-	}
-
-	if hub == nil {
-		log.Fatal("hub is needed")
+func Listen(ctx context.Context, config *HubConfig, addr string, auth TCPAuthFunc) (*Hub, error) {
+	hub, err := createHub(ctx, config)
+	if err != nil {
+		return nil, fmt.Errorf("create hub err: %w", err)
 	}
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("listen err: %w", err)
 	}
 
 	initAuth := func(conn net.Conn) {

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"expvar"
 	"fmt"
-	"log"
 	"log/slog"
 	"time"
 )
@@ -51,17 +50,17 @@ type Hub struct {
 	done          chan struct{}      // closed when run() exits
 }
 
-func createHub(config *HubConfig) *Hub {
+func createHub(ctx context.Context, config *HubConfig) (*Hub, error) {
 	if config.readTimeout > 0 {
 		slog.Info("[tok] read timeout is enabled, make sure it's greater than your client ping interval. otherwise you'll get read timeout err")
 	} else {
 		// quit if both read timeout and ping are disabled
 		if config.pingProducer == nil {
-			log.Fatalln("[tok] fatal: both read timeout and server ping have been disabled, server socket resource leak might happen")
+			return nil, errors.New("[tok] fatal: both read timeout and server ping have been disabled, server socket resource leak might happen")
 		}
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	hub := &Hub{
 		cons:          make(map[interface{}][]*connection),
 		chUp:          make(chan *upFrame),
@@ -77,7 +76,7 @@ func createHub(config *HubConfig) *Hub {
 		done:          make(chan struct{}),
 	}
 	go hub.run()
-	return hub
+	return hub, nil
 }
 
 // Close gracefully shuts down the hub.

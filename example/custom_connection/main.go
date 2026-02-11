@@ -90,14 +90,18 @@ func (e *EchoActor) OnReceive(dv *tok.Device, data []byte) {
 
 func main() {
 	// Create hub
-	config := tok.NewHubConfig(&EchoActor{})
-	hub, _ := tok.CreateWsHandler(nil, tok.WithWsHandlerHubConfig(config))
+	config := tok.NewHubConfig(&EchoActor{},
+		tok.WithHubConfigReadTimeout(30*time.Second))
+	hub, _, err := tok.CreateWsHandler(context.Background(), nil, tok.WithWsHandlerHubConfig(config))
+	if err != nil {
+		log.Fatal("Failed to create hub:", err)
+	}
 
 	// Start Unix socket server
 	socketPath := "/tmp/tok_custom.sock"
 
 	// Clean up old socket
-	_, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: socketPath, Net: "unix"})
+	_, err = net.DialUnix("unix", nil, &net.UnixAddr{Name: socketPath, Net: "unix"})
 	if err != nil {
 		log.Fatal("Failed to dial:", err)
 	}

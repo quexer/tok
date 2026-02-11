@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"log/slog"
@@ -40,14 +41,18 @@ func main() {
 	}
 
 	// Create WebSocket handler using Gorilla WebSocket
-	hub, hdl = tok.CreateWsHandler(authFunc,
+	var err error
+	hub, hdl, err = tok.CreateWsHandler(context.Background(), authFunc,
 		tok.WithWsHandlerHubConfig(hc),
 		tok.WithWsHandlerEngine(tok.WsEngineGorilla)) // Use Gorilla WebSocket
+	if err != nil {
+		log.Fatalf("Error creating WebSocket handler: %v", err)
+	}
 
 	http.Handle("/ws", hdl)
 
 	slog.Info("Gorilla WebSocket server starting on :8090")
-	err := http.ListenAndServe(":8090", nil)
+	err = http.ListenAndServe(":8090", nil)
 	if err != nil {
 		log.Fatalf("Error starting HTTP server: %v", err)
 	}

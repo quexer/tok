@@ -6,7 +6,8 @@ package tok
 
 import (
 	"context"
-	"log"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -100,10 +101,21 @@ func (p *WsHandler) hdlFromCoderWebSocket() http.HandlerFunc {
 	}
 }
 
+func (p *WsHandler) hdl() http.Handler {
+	switch p.engine {
+	case WsEngineGorilla:
+		return p.hdlFromGorillaWebSocket()
+	case WsEngineCoder:
+		return p.hdlFromCoderWebSocket()
+	default:
+		return p.hdlFromXwebSocket()
+	}
+}
+
 // CreateWsHandler create websocket http handler
 // auth function is used for user authorization
 // Return hub and http handler
-func CreateWsHandler(auth WsAuthFunc, opts ...WsHandlerOption) (*Hub, http.Handler) {
+func CreateWsHandler(ctx context.Context, auth WsAuthFunc, opts ...WsHandlerOption) (*Hub, http.Handler, error) {
 	wsh := &WsHandler{
 		hub:       nil,
 		hubConfig: nil,
@@ -117,21 +129,18 @@ func CreateWsHandler(auth WsAuthFunc, opts ...WsHandlerOption) (*Hub, http.Handl
 	}
 
 	if wsh.hubConfig != nil {
-		wsh.hub = createHub(wsh.hubConfig)
+		var err error
+		wsh.hub, err = createHub(ctx, wsh.hubConfig)
+		if err != nil {
+			return nil, nil, fmt.Errorf("create hub: %w", err)
+		}
 	}
 
 	if wsh.hub == nil {
-		log.Fatal("hub is needed")
+		return nil, nil, errors.New("hub is needed")
 	}
 
-	switch wsh.engine {
-	case WsEngineGorilla:
-		return wsh.hub, wsh.hdlFromGorillaWebSocket()
-	case WsEngineCoder:
-		return wsh.hub, wsh.hdlFromCoderWebSocket()
-	default:
-		return wsh.hub, wsh.hdlFromXwebSocket()
-	}
+	return wsh.hub, wsh.hdl(), nil
 }
 
 // WsAuthFunc websocket auth function, return Device interface

@@ -54,9 +54,11 @@ var _ = Describe("Hub", func() {
 			return tok.CreateDevice(uid, "dv-id"), nil
 		}
 
-		hub, handler = tok.CreateWsHandler(auth,
+		var err error
+		hub, handler, err = tok.CreateWsHandler(ctx, auth,
 			tok.WithWsHandlerHubConfig(hubConfig),
 			tok.WithWsHandlerEngine(tok.WsEngineGorilla)) // Use Gorilla engine to match client
+		Ω(err).To(Succeed())
 
 		// Setup test server
 		server = httptest.NewServer(handler)

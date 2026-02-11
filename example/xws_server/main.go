@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"log/slog"
@@ -39,11 +40,15 @@ func main() {
 		return tok.CreateDevice(fmt.Sprintf("%p", r), ""), nil
 	}
 
-	hub, hdl = tok.CreateWsHandler(authFunc, tok.WithWsHandlerHubConfig(hc))
+	var err error
+	hub, hdl, err = tok.CreateWsHandler(context.Background(), authFunc, tok.WithWsHandlerHubConfig(hc))
+	if err != nil {
+		log.Fatalf("Error creating WebSocket handler: %v", err)
+	}
 
 	http.Handle("/ws", hdl)
 
-	err := http.ListenAndServe(":8090", nil)
+	err = http.ListenAndServe(":8090", nil)
 	if err != nil {
 		log.Fatalf("Error starting HTTP server: %v", err)
 	}

@@ -25,19 +25,21 @@ var _ = Describe("WsConn", func() {
 	})
 
 	It("CreateWsHandler with default settings", func() {
-		hub, hdl := tok.CreateWsHandler(auth,
+		hub, hdl, err := tok.CreateWsHandler(ctx, auth,
 			tok.WithWsHandlerHubConfig(tok.NewHubConfig(mActor,
 				tok.WithHubConfigPingProducer(mPingGen))))
+		Ω(err).ToNot(HaveOccurred())
 		Ω(hub).ToNot(BeNil())
 		Ω(hdl).ToNot(BeNil())
 	})
 
 	DescribeTable("CreateWsHandler with different WebSocket engines",
 		func(engine tok.WsEngine) {
-			hub, hdl := tok.CreateWsHandler(auth,
+			hub, hdl, err := tok.CreateWsHandler(ctx, auth,
 				tok.WithWsHandlerEngine(engine),
 				tok.WithWsHandlerHubConfig(tok.NewHubConfig(mActor,
 					tok.WithHubConfigPingProducer(mPingGen))))
+			Ω(err).To(Succeed())
 			Ω(hub).ToNot(BeNil())
 			Ω(hdl).ToNot(BeNil())
 		},

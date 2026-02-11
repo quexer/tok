@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"log/slog"
@@ -40,14 +41,18 @@ func main() {
 	}
 
 	// Create WebSocket handler using Coder WebSocket
-	hub, hdl = tok.CreateWsHandler(authFunc,
+	var err error
+	hub, hdl, err = tok.CreateWsHandler(context.Background(), authFunc,
 		tok.WithWsHandlerHubConfig(hc),
 		tok.WithWsHandlerEngine(tok.WsEngineCoder)) // Use Coder WebSocket
+	if err != nil {
+		log.Fatalf("Error creating WebSocket handler: %v", err)
+	}
 
 	http.Handle("/ws", hdl)
 
 	slog.Info("Coder WebSocket server starting on :8091")
-	err := http.ListenAndServe(":8091", nil)
+	err = http.ListenAndServe(":8091", nil)
 	if err != nil {
 		log.Fatalf("Error starting HTTP server: %v", err)
 	}
