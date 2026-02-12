@@ -25,9 +25,11 @@ var _ = Describe("WsConn", func() {
 	})
 
 	It("CreateWsHandler with default settings", func() {
+		hc, err := tok.NewHubConfig(mActor,
+			tok.WithHubConfigPingProducer(mPingGen))
+		Ω(err).To(Succeed())
 		hub, hdl, err := tok.CreateWsHandler(ctx, auth,
-			tok.WithWsHandlerHubConfig(tok.NewHubConfig(mActor,
-				tok.WithHubConfigPingProducer(mPingGen))))
+			tok.WithWsHandlerHubConfig(hc))
 		Ω(err).To(Succeed())
 		Ω(hub).ToNot(BeNil())
 		Ω(hdl).ToNot(BeNil())
@@ -36,9 +38,11 @@ var _ = Describe("WsConn", func() {
 	DescribeTable("CreateWsHandler with WithWsHandlerHub (no hubConfig) should not panic",
 		func(engine tok.WsEngine) {
 			// Create hub via a normal path first
+			hc, err := tok.NewHubConfig(mActor,
+				tok.WithHubConfigPingProducer(mPingGen))
+			Ω(err).To(Succeed())
 			hub, _, err := tok.CreateWsHandler(ctx, auth,
-				tok.WithWsHandlerHubConfig(tok.NewHubConfig(mActor,
-					tok.WithHubConfigPingProducer(mPingGen))))
+				tok.WithWsHandlerHubConfig(hc))
 			Ω(err).ToNot(HaveOccurred())
 			defer hub.Close()
 
@@ -56,10 +60,12 @@ var _ = Describe("WsConn", func() {
 
 	DescribeTable("CreateWsHandler with different WebSocket engines",
 		func(engine tok.WsEngine) {
+			hc, err := tok.NewHubConfig(mActor,
+				tok.WithHubConfigPingProducer(mPingGen))
+			Ω(err).To(Succeed())
 			hub, hdl, err := tok.CreateWsHandler(ctx, auth,
 				tok.WithWsHandlerEngine(engine),
-				tok.WithWsHandlerHubConfig(tok.NewHubConfig(mActor,
-					tok.WithHubConfigPingProducer(mPingGen))))
+				tok.WithWsHandlerHubConfig(hc))
 			Ω(err).To(Succeed())
 			Ω(hub).ToNot(BeNil())
 			Ω(hdl).ToNot(BeNil())

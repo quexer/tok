@@ -27,7 +27,7 @@ func main() {
 	// Define the AfterSend handler (use functional option for AfterSend functionality)
 	afterSendHandler := &SimpleAfterSendHandler{}
 
-	hc := tok.NewHubConfig(&simpleActor{},
+	hc, err := tok.NewHubConfig(&simpleActor{},
 		tok.WithHubConfigServerPingInterval(2*time.Second),
 		tok.WithHubConfigPingProducer(&SimplePingProducer{}),
 		tok.WithHubConfigBeforeReceive(beforeReceiveHandler),
@@ -35,12 +35,14 @@ func main() {
 		// Use AfterSend via functional option (AfterSend method is no longer in Actor interface)
 		tok.WithHubConfigAfterSend(afterSendHandler),
 	)
+	if err != nil {
+		log.Fatalf("Error creating hub config: %v", err)
+	}
 
 	authFunc := func(r *http.Request) (*tok.Device, error) {
 		return tok.CreateDevice(fmt.Sprintf("%p", r), ""), nil
 	}
 
-	var err error
 	hub, hdl, err = tok.CreateWsHandler(context.Background(), authFunc, tok.WithWsHandlerHubConfig(hc))
 	if err != nil {
 		log.Fatalf("Error creating WebSocket handler: %v", err)

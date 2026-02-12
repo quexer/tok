@@ -36,10 +36,12 @@ var _ = Describe("Hub", func() {
 		mockQueue = mocks.NewMockQueue(ctl)
 		mockPingGen = mocks.NewMockPingGenerator(ctl)
 
-		hubConfig = tok.NewHubConfig(mockActor,
+		var err error
+		hubConfig, err = tok.NewHubConfig(mockActor,
 			tok.WithHubConfigQueue(mockQueue),
 			tok.WithHubConfigPingProducer(mockPingGen), // Required to avoid fatal error
 		)
+		Ω(err).To(Succeed())
 
 		dialer = &websocket.Dialer{}
 	})
@@ -166,11 +168,13 @@ var _ = Describe("Hub", func() {
 			mockByeGen := mocks.NewMockByeGenerator(ctl)
 			mockByeGen.EXPECT().Bye(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte("bye")).AnyTimes()
 
-			hubConfig = tok.NewHubConfig(mockActor,
+			var err error
+			hubConfig, err = tok.NewHubConfig(mockActor,
 				tok.WithHubConfigQueue(mockQueue),
 				tok.WithHubConfigPingProducer(mockPingGen),
 				tok.WithHubConfigByeGenerator(mockByeGen),
 			)
+			Ω(err).To(Succeed())
 		})
 
 		It("should disconnect device when kicked", func() {
@@ -216,11 +220,13 @@ var _ = Describe("Hub", func() {
 
 	Describe("Hub with SSO", func() {
 		BeforeEach(func() {
-			hubConfig = tok.NewHubConfig(mockActor,
+			var err error
+			hubConfig, err = tok.NewHubConfig(mockActor,
 				tok.WithHubConfigQueue(mockQueue),
 				tok.WithHubConfigPingProducer(mockPingGen),
 				tok.WithHubConfigSso(true), // Enable SSO
 			)
+			Ω(err).To(Succeed())
 		})
 
 		It("should disconnect old connection when new one arrives", func() {
@@ -350,13 +356,15 @@ var _ = Describe("Hub", func() {
 			mockByeGen.EXPECT().Bye(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return([]byte("bye")).AnyTimes()
 
-			hubConfig = tok.NewHubConfig(mockActor,
+			var err error
+			hubConfig, err = tok.NewHubConfig(mockActor,
 				tok.WithHubConfigQueue(mockQueue),
 				tok.WithHubConfigPingProducer(mockPingGen),
 				tok.WithHubConfigSso(true),
 				tok.WithHubConfigBeforeSend(mockBeforeSend),
 				tok.WithHubConfigByeGenerator(mockByeGen),
 			)
+			Ω(err).To(Succeed())
 		})
 
 		It("should not write when beforeSend returns error", func() {

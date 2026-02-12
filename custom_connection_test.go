@@ -33,12 +33,12 @@ var _ = Describe("Custom Connection", func() {
 		mockQueue.EXPECT().Deq(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 		mockQueue.EXPECT().Enq(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-		config := tok.NewHubConfig(mockActor,
+		config, err := tok.NewHubConfig(mockActor,
 			tok.WithHubConfigPingProducer(mockPing),
 			tok.WithHubConfigQueue(mockQueue))
-		var err error
+		Ω(err).To(Succeed())
 		hub, _, err = tok.CreateWsHandler(ctx, nil, tok.WithWsHandlerHubConfig(config))
-		Expect(err).NotTo(HaveOccurred())
+		Ω(err).To(Succeed())
 
 		device = tok.CreateDevice("custom-user", "custom-session")
 	})
@@ -171,12 +171,12 @@ var _ = Describe("Custom Connection", func() {
 			mockPing := mocks.NewMockPingGenerator(ctl)
 			mockPing.EXPECT().Ping().Return([]byte("ping")).AnyTimes()
 
-			config := tok.NewHubConfig(mockActor,
+			config, err := tok.NewHubConfig(mockActor,
 				tok.WithHubConfigPingProducer(mockPing),
 				tok.WithHubConfigQueue(mockQueue))
-			var err error
+			Ω(err).To(Succeed())
 			hub, _, err = tok.CreateWsHandler(ctx, nil, tok.WithWsHandlerHubConfig(config))
-			Expect(err).NotTo(HaveOccurred())
+			Ω(err).To(Succeed())
 
 			// Setup expectations
 			msgData := []byte("offline message")

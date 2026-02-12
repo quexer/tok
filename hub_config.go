@@ -1,7 +1,7 @@
 package tok
 
 import (
-	"log"
+	"errors"
 	"time"
 )
 
@@ -23,9 +23,9 @@ type HubConfig struct {
 }
 
 // NewHubConfig create new HubConfig
-func NewHubConfig(actor Actor, opts ...HubConfigOption) *HubConfig {
+func NewHubConfig(actor Actor, opts ...HubConfigOption) (*HubConfig, error) {
 	if actor == nil {
-		log.Fatal("fatal: actor is needed")
+		return nil, errors.New("[tok] actor is required")
 	}
 
 	hc := &HubConfig{
@@ -42,7 +42,7 @@ func NewHubConfig(actor Actor, opts ...HubConfigOption) *HubConfig {
 		opt(hc)
 	}
 
-	return hc
+	return hc, nil
 }
 
 type HubConfigOption func(*HubConfig)

@@ -90,8 +90,11 @@ func (e *EchoActor) OnReceive(dv *tok.Device, data []byte) {
 
 func main() {
 	// Create hub
-	config := tok.NewHubConfig(&EchoActor{},
+	config, err := tok.NewHubConfig(&EchoActor{},
 		tok.WithHubConfigReadTimeout(30*time.Second))
+	if err != nil {
+		log.Fatal("Failed to create hub config:", err)
+	}
 	hub, _, err := tok.CreateWsHandler(context.Background(), nil, tok.WithWsHandlerHubConfig(config))
 	if err != nil {
 		log.Fatal("Failed to create hub:", err)
