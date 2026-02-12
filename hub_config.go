@@ -5,6 +5,19 @@ import (
 	"time"
 )
 
+// PartialSendPolicy controls how Send with ttl > 0 behaves when sending to multiple online connections partially fails.
+type PartialSendPolicy int
+
+const (
+	// PartialSendCacheOnAnyFailure caches the message if any online connection send failed.
+	// This is the default behavior for backward compatibility.
+	PartialSendCacheOnAnyFailure PartialSendPolicy = iota
+	// PartialSendCacheWhenAllFailed caches the message only when all online connections failed.
+	PartialSendCacheWhenAllFailed
+	// PartialSendNoCache never caches online send failures; partial/all failures are returned directly.
+	PartialSendNoCache
+)
+
 // HubConfig config struct for creating new Hub
 type HubConfig struct {
 	actor              Actor                // actor implement dispatch logic
@@ -20,6 +33,7 @@ type HubConfig struct {
 	authTimeout        time.Duration        // Auth timeout duration, default 5s
 	writeTimeout       time.Duration        // Write timeout duration, default 1m
 	readTimeout        time.Duration        // Read timeout duration, default 0s, means no read timeout
+	partialSendPolicy  PartialSendPolicy    // strategy for online partial send failures when ttl > 0
 }
 
 // NewHubConfig create new HubConfig
@@ -36,6 +50,7 @@ func NewHubConfig(actor Actor, opts ...HubConfigOption) (*HubConfig, error) {
 		authTimeout:        5 * time.Second,  // default
 		writeTimeout:       time.Minute,      // default
 		readTimeout:        0,
+		partialSendPolicy:  PartialSendCacheOnAnyFailure,
 	}
 
 	for _, opt := range opts {
@@ -130,5 +145,12 @@ func WithHubConfigPingProducer(pingProducer PingGenerator) HubConfigOption {
 func WithHubConfigByeGenerator(byeGenerator ByeGenerator) HubConfigOption {
 	return func(hc *HubConfig) {
 		hc.byeGenerator = byeGenerator
+	}
+}
+
+// WithHubConfigPartialSendPolicy configures how Send with ttl > 0 behaves on online partial failures.
+func WithHubConfigPartialSendPolicy(policy PartialSendPolicy) HubConfigOption {
+	return func(hc *HubConfig) {
+		hc.partialSendPolicy = policy
 	}
 }

@@ -196,7 +196,8 @@ func (p *Hub) popMsg(ctx context.Context, uid interface{}) {
 // Send message to someone.
 // ttl is expiry seconds. 0 means only send to online user
 // If ttl = 0 and user is offline, ErrOffline will be returned.
-// If ttl > 0 and user is offline or online but send fail, message will be cached for ttl seconds.
+// If ttl > 0 and user is offline, message will be cached for ttl seconds.
+// If ttl > 0 and user is online, cache behavior on send failure depends on HubConfig PartialSendPolicy.
 // Returns ErrHubClosed if the hub has been closed.
 func (p *Hub) Send(ctx context.Context, to interface{}, b []byte, ttl uint32) error {
 	// Use mctx (not shadowing ctx) because p.cache below needs the original caller ctx.
@@ -222,7 +223,7 @@ func (p *Hub) Send(ctx context.Context, to interface{}, b []byte, ttl uint32) er
 		return err
 	}
 
-	if ttl > 0 && err != nil {
+	if ttl > 0 && err != nil && p.shouldCacheOnSendError(err) {
 		// Create a new downFrame for caching to avoid channel reuse issues
 		cacheFF := &downFrame{
 			uid:   ff.uid,
@@ -241,6 +242,19 @@ func (p *Hub) Send(ctx context.Context, to interface{}, b []byte, ttl uint32) er
 		}
 	}
 	return err
+}
+
+func (p *Hub) shouldCacheOnSendError(err error) bool {
+	switch p.config.partialSendPolicy {
+	case PartialSendCacheOnAnyFailure:
+		return true
+	case PartialSendCacheWhenAllFailed:
+		return !errors.Is(err, ErrPartialDelivered)
+	case PartialSendNoCache:
+		return false
+	default:
+		return true
+	}
 }
 
 // CheckOnline return whether user online or not.
@@ -303,20 +317,34 @@ func (p *Hub) down(f *downFrame, conns []*connection) {
 	expDown.Add(1)
 
 	var lastErr error
+	var sent int
+	var failed int
 	for _, con := range conns {
 		data, err := p.beforeSend(con.dv, f.data)
 		if err != nil {
 			lastErr = err
+			failed++
 			continue
 		}
 		if err := con.Write(data); err != nil {
 			lastErr = err
+			failed++
 			continue
 		}
+		sent++
 
 		if hdl := p.config.hdlAfterSend; hdl != nil {
 			go hdl.AfterSend(con.dv, f.data)
 		}
+	}
+
+	if failed == 0 {
+		f.chErr <- nil
+		return
+	}
+	if sent > 0 {
+		f.chErr <- fmt.Errorf("%w: %w", ErrPartialDelivered, lastErr)
+		return
 	}
 	f.chErr <- lastErr
 }

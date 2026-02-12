@@ -22,6 +22,9 @@ var ErrQueueRequired = errors.New("tok: queue is required")
 // ErrCacheFailed occurs while sending "cacheable" message with queue but failed to cache
 var ErrCacheFailed = errors.New("tok: cache error")
 
+// ErrPartialDelivered occurs when sending to multiple online connections and only part of them succeeded.
+var ErrPartialDelivered = errors.New("tok: partial delivered")
+
 // BeforeReceiveHandler is an interface for preprocessing incoming data before OnReceive
 type BeforeReceiveHandler interface {
 	// BeforeReceive is called to preprocess incoming data before OnReceive
