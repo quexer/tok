@@ -7,15 +7,17 @@ import (
 )
 
 type MemoryQueue struct {
-	queues     sync.Map // uid -> *userQueue
-	ctx        context.Context
-	cancelFunc context.CancelFunc
+	queues      sync.Map // uid -> *userQueue
+	ctx         context.Context
+	cancelFunc  context.CancelFunc
+	IdleTimeout time.Duration // idle timeout before empty queue is removed, default 1 minute
 }
 
 type userQueue struct {
 	mu         sync.Mutex
 	items      []queueItem
 	lastAccess time.Time // track last access time for cleanup
+	deleted    bool      // set to true when removed from map by Cleanup
 }
 
 type queueItem struct {
@@ -26,12 +28,28 @@ type queueItem struct {
 func NewMemoryQueue() *MemoryQueue {
 	ctx, cancel := context.WithCancel(context.Background())
 	mq := &MemoryQueue{
-		ctx:        ctx,
-		cancelFunc: cancel,
+		ctx:         ctx,
+		cancelFunc:  cancel,
+		IdleTimeout: time.Minute,
 	}
 	// Start cleanup routine
 	go mq.cleanupRoutine()
 	return mq
+}
+
+// Cleanup removes empty queues that have been idle longer than IdleTimeout.
+func (mq *MemoryQueue) Cleanup() {
+	now := time.Now()
+	mq.queues.Range(func(key, value interface{}) bool {
+		queue := value.(*userQueue)
+		queue.mu.Lock()
+		if len(queue.items) == 0 && now.Sub(queue.lastAccess) > mq.IdleTimeout {
+			queue.deleted = true
+			mq.queues.Delete(key)
+		}
+		queue.mu.Unlock()
+		return true
+	})
 }
 
 // cleanupRoutine periodically cleans up empty queues
@@ -44,19 +62,7 @@ func (mq *MemoryQueue) cleanupRoutine() {
 		case <-mq.ctx.Done():
 			return
 		case <-ticker.C:
-			now := time.Now()
-			mq.queues.Range(func(key, value interface{}) bool {
-				queue := value.(*userQueue)
-				queue.mu.Lock()
-				// Remove queue if empty and not accessed for 5 minutes
-				if len(queue.items) == 0 && now.Sub(queue.lastAccess) > time.Minute {
-					queue.mu.Unlock()
-					mq.queues.Delete(key)
-				} else {
-					queue.mu.Unlock()
-				}
-				return true
-			})
+			mq.Cleanup()
 		}
 	}
 }
@@ -69,24 +75,34 @@ func (mq *MemoryQueue) Close() {
 }
 
 func (mq *MemoryQueue) Enq(ctx context.Context, uid interface{}, data []byte, ttl ...uint32) error {
-	qu, _ := mq.queues.LoadOrStore(uid, &userQueue{lastAccess: time.Now()})
-	queue := qu.(*userQueue)
+	for {
+		qu, _ := mq.queues.LoadOrStore(uid, &userQueue{lastAccess: time.Now()})
+		queue := qu.(*userQueue)
 
-	queue.mu.Lock()
-	defer queue.mu.Unlock()
+		queue.mu.Lock()
 
-	queue.lastAccess = time.Now()
+		// If Cleanup has marked this queue as deleted, the queue object is detached
+		// from the map. Discard it and retry with a fresh entry.
+		if queue.deleted {
+			queue.mu.Unlock()
+			mq.queues.CompareAndDelete(uid, qu)
+			continue
+		}
 
-	var expiration time.Time
-	if len(ttl) > 0 && ttl[0] > 0 {
-		expiration = time.Now().Add(time.Duration(ttl[0]) * time.Second)
+		queue.lastAccess = time.Now()
+
+		var expiration time.Time
+		if len(ttl) > 0 && ttl[0] > 0 {
+			expiration = time.Now().Add(time.Duration(ttl[0]) * time.Second)
+		}
+
+		queue.items = append(queue.items, queueItem{
+			data:       data,
+			expiration: expiration,
+		})
+		queue.mu.Unlock()
+		return nil
 	}
-
-	queue.items = append(queue.items, queueItem{
-		data:       data,
-		expiration: expiration,
-	})
-	return nil
 }
 
 func (mq *MemoryQueue) Deq(ctx context.Context, uid interface{}) ([]byte, error) {
