@@ -151,10 +151,22 @@ func Listen(ctx context.Context, config *HubConfig, addr string, auth TCPAuthFun
 		hub.RegisterConnection(context.Background(), dv, adapter)
 	}
 
+	// Close listener when hub shuts down so Accept returns an error and the loop exits.
+	go func() {
+		<-hub.ctx.Done()
+		_ = listener.Close()
+	}()
+
 	go func() {
 		for {
 			conn, err := listener.Accept()
 			if err != nil {
+				// If hub context is done, exit gracefully
+				select {
+				case <-hub.ctx.Done():
+					return
+				default:
+				}
 				slog.Warn("Error accepting", "err", err)
 				continue
 			}
