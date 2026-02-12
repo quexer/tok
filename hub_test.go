@@ -78,7 +78,7 @@ var _ = Describe("Hub", func() {
 			mockQueue.EXPECT().Deq(gomock.Any(), gomock.Any())
 			// Connect websocket client
 			ws, _, err := dialer.Dial(wsURL, nil)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Succeed())
 			defer ws.Close()
 
 			// Give connection time to establish
@@ -86,11 +86,11 @@ var _ = Describe("Hub", func() {
 
 			// Send message through hub
 			err = hub.Send(ctx, uid, []byte("test message"), 0)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Succeed())
 
 			// Read message from websocket
 			_, msg, err := ws.ReadMessage()
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Succeed())
 			Expect(msg).To(Equal([]byte("test message")))
 		})
 
@@ -106,7 +106,7 @@ var _ = Describe("Hub", func() {
 
 			// Send with TTL > 0 to trigger queueing
 			err := hub.Send(ctx, "offline-user", []byte("queued message"), 300)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Succeed())
 
 		})
 
@@ -130,7 +130,7 @@ var _ = Describe("Hub", func() {
 			mockQueue.EXPECT().Deq(gomock.Any(), gomock.Any())
 			// Connect websocket client, will be authenticated as "test-user"
 			ws, _, err := dialer.Dial(wsURL, nil)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Succeed())
 			defer ws.Close()
 
 			// Give connection time to establish
@@ -151,7 +151,7 @@ var _ = Describe("Hub", func() {
 			mockQueue.EXPECT().Deq(gomock.Any(), gomock.Any())
 			// Since auth function always returns "test-user", let's just test single connection
 			ws, _, err := dialer.Dial(wsURL, nil)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Succeed())
 			defer ws.Close()
 
 			// Give connection time to establish
@@ -181,7 +181,7 @@ var _ = Describe("Hub", func() {
 			mockQueue.EXPECT().Deq(gomock.Any(), gomock.Any())
 			// Connect websocket client
 			ws, _, err := dialer.Dial(wsURL, nil)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Succeed())
 			defer ws.Close()
 
 			// Give connection time to establish
@@ -233,7 +233,7 @@ var _ = Describe("Hub", func() {
 			mockQueue.EXPECT().Deq(gomock.Any(), gomock.Any()).Times(2)
 			// Connect first client
 			ws1, _, err := dialer.Dial(wsURL, nil)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Succeed())
 			defer ws1.Close()
 
 			// Give connection time to establish
@@ -241,7 +241,7 @@ var _ = Describe("Hub", func() {
 
 			// Connect second client with same user
 			ws2, _, err := dialer.Dial(wsURL, nil)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Succeed())
 			defer ws2.Close()
 
 			// Give time for SSO to kick in
@@ -253,10 +253,10 @@ var _ = Describe("Hub", func() {
 
 			// Second connection should work fine
 			err = hub.Send(ctx, uid, []byte("test"), 0)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Succeed())
 
 			_, msg, err := ws2.ReadMessage()
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Succeed())
 			Expect(msg).To(Equal([]byte("test")))
 		})
 	})
@@ -284,7 +284,7 @@ var _ = Describe("Hub", func() {
 			mockQueue.EXPECT().Deq(gomock.Any(), gomock.Any())
 			// Connect websocket client
 			ws, _, err := dialer.Dial(wsURL, nil)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Succeed())
 			defer ws.Close()
 
 			// Give connection time to establish
@@ -303,7 +303,7 @@ var _ = Describe("Hub", func() {
 			mockQueue.EXPECT().Deq(gomock.Any(), gomock.Any())
 			// Connect websocket client
 			ws, _, err := dialer.Dial(wsURL, nil)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Succeed())
 			defer ws.Close()
 
 			// Give connection time to establish
@@ -322,7 +322,7 @@ var _ = Describe("Hub", func() {
 			mockQueue.EXPECT().Deq(gomock.Any(), gomock.Any())
 			// Connect websocket client
 			ws, _, err := dialer.Dial(wsURL, nil)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Succeed())
 			defer ws.Close()
 
 			// Give connection time to establish

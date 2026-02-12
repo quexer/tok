@@ -11,13 +11,7 @@ import (
 	"github.com/quexer/tok"
 )
 
-var (
-	hub *tok.Hub
-)
-
 func main() {
-	var hdl http.Handler
-
 	// Define the BeforeReceive handler
 	beforeReceiveHandler := &SimpleBeforeReceiveHandler{}
 
@@ -43,7 +37,7 @@ func main() {
 		return tok.CreateDevice(fmt.Sprintf("%p", r), ""), nil
 	}
 
-	hub, hdl, err = tok.CreateWsHandler(context.Background(), authFunc, tok.WithWsHandlerHubConfig(hc))
+	_, hdl, err := tok.CreateWsHandler(context.Background(), authFunc, tok.WithWsHandlerHubConfig(hc))
 	if err != nil {
 		log.Fatalf("Error creating WebSocket handler: %v", err)
 	}

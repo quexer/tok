@@ -11,12 +11,7 @@ import (
 	"github.com/quexer/tok"
 )
 
-var (
-	hub *tok.Hub
-)
-
 func main() {
-	var hdl http.Handler
 
 	// Define the BeforeReceive handler
 	beforeReceiveHandler := &SimpleBeforeReceiveHandler{}
@@ -44,7 +39,7 @@ func main() {
 	}
 
 	// Create WebSocket handler using Coder WebSocket
-	hub, hdl, err = tok.CreateWsHandler(context.Background(), authFunc,
+	_, hdl, err := tok.CreateWsHandler(context.Background(), authFunc,
 		tok.WithWsHandlerHubConfig(hc),
 		tok.WithWsHandlerEngine(tok.WsEngineCoder)) // Use Coder WebSocket
 	if err != nil {

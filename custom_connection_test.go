@@ -111,7 +111,7 @@ var _ = Describe("Custom Connection", func() {
 
 			// Send a message
 			err := hub.Send(ctx, "custom-user", msgData, 0)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Succeed())
 
 			// Give time for message to be sent
 			time.Sleep(50 * time.Millisecond)
@@ -185,7 +185,7 @@ var _ = Describe("Custom Connection", func() {
 
 			// Send message with TTL while device is offline
 			err = hub.Send(ctx, "custom-user", msgData, 300)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(Succeed())
 
 			// Wait for async queue operation
 			time.Sleep(50 * time.Millisecond)
