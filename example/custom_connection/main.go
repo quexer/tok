@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
 	"time"
 
 	"github.com/quexer/tok"
@@ -103,11 +104,8 @@ func main() {
 	// Start Unix socket server
 	socketPath := "/tmp/tok_custom.sock"
 
-	// Clean up old socket
-	_, err = net.DialUnix("unix", nil, &net.UnixAddr{Name: socketPath, Net: "unix"})
-	if err != nil {
-		log.Fatal("Failed to dial:", err)
-	}
+	// Clean up old socket file if it exists
+	os.Remove(socketPath)
 
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
