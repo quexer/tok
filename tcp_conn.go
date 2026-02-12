@@ -69,9 +69,10 @@ func (p *tcpAdapter) Read() ([]byte, error) {
 }
 
 func (p *tcpAdapter) Write(b []byte) error {
-	// set write deadline
-	if err := p.conn.SetWriteDeadline(time.Now().Add(p.writeTimeout)); err != nil {
-		return fmt.Errorf("setting write deadline err: %w", err)
+	if p.writeTimeout > 0 {
+		if err := p.conn.SetWriteDeadline(time.Now().Add(p.writeTimeout)); err != nil {
+			return fmt.Errorf("setting write deadline err: %w", err)
+		}
 	}
 
 	n := uint32(len(b))
@@ -98,11 +99,10 @@ func (p *tcpAdapter) ShareConn(adapter ConAdapter) bool {
 	return p.conn == tcpAdp.conn
 }
 
-// Listen create Tcp listener with hub.
-// If config is not nil, a new hub will be created and replace the old one.
-// addr is the tcp address to be listened on.
-// auth function is used for user authorization
-// return error if listen failed.
+// Listen creates a TCP listener and a Hub.
+// addr is the TCP address to listen on.
+// auth is the function used for user authorization.
+// Returns the Hub and an error if listen failed.
 func Listen(ctx context.Context, config *HubConfig, addr string, auth TCPAuthFunc) (*Hub, error) {
 	hub, err := createHub(ctx, config)
 	if err != nil {

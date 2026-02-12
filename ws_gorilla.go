@@ -28,8 +28,10 @@ func (p *gorillaWsAdapter) Read() ([]byte, error) {
 }
 
 func (p *gorillaWsAdapter) Write(b []byte) error {
-	if err := p.conn.SetWriteDeadline(time.Now().Add(p.writeTimeout)); err != nil {
-		return fmt.Errorf("setting gorilla ws write deadline failed: %w", err)
+	if p.writeTimeout > 0 {
+		if err := p.conn.SetWriteDeadline(time.Now().Add(p.writeTimeout)); err != nil {
+			return fmt.Errorf("setting gorilla ws write deadline failed: %w", err)
+		}
 	}
 
 	var messageType int

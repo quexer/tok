@@ -16,5 +16,5 @@ mock:
 
 .PHONY: test
 test: fmt mock
-	ginkgo -r .
+	ginkgo -r --race --randomize-all --randomize-suites --trace --keep-going ./...
 

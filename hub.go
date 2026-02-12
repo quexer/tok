@@ -86,13 +86,17 @@ func createHub(ctx context.Context, config *HubConfig) (*Hub, error) {
 func (p *Hub) Close() {
 	p.cancel()
 	<-p.done
+
+	// Close the queue if it implements io.Closer (e.g. MemoryQueue)
+	if c, ok := p.config.q.(interface{ Close() }); ok {
+		c.Close()
+	}
 }
 
 func (p *Hub) run() {
 	defer close(p.done)
 
 	for {
-
 		select {
 		case <-p.ctx.Done():
 			// graceful shutdown: close all connections

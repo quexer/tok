@@ -134,6 +134,7 @@ func CreateWsHandler(ctx context.Context, auth WsAuthFunc, opts ...WsHandlerOpti
 		if err != nil {
 			return nil, nil, fmt.Errorf("create hub: %w", err)
 		}
+		wsh.hubConfig = nil // config consumed; avoid stale reference
 	}
 
 	if wsh.hub == nil {

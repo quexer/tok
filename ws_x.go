@@ -36,8 +36,10 @@ func (p *xWsAdapter) Read() ([]byte, error) {
 }
 
 func (p *xWsAdapter) Write(b []byte) error {
-	if err := p.conn.SetWriteDeadline(time.Now().Add(p.writeTimeout)); err != nil {
-		return fmt.Errorf("setting x ws write deadline failed: %w", err)
+	if p.writeTimeout > 0 {
+		if err := p.conn.SetWriteDeadline(time.Now().Add(p.writeTimeout)); err != nil {
+			return fmt.Errorf("setting x ws write deadline failed: %w", err)
+		}
 	}
 
 	if p.txt {
