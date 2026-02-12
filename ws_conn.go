@@ -30,8 +30,8 @@ func (p *WsHandler) hdlFromXwebSocket() xwebsocket.Handler {
 		adapter := &xWsAdapter{
 			conn:         ws,
 			txt:          p.txt,
-			writeTimeout: p.hubConfig.writeTimeout,
-			readTimeout:  p.hubConfig.readTimeout,
+			writeTimeout: p.hub.config.writeTimeout,
+			readTimeout:  p.hub.config.readTimeout,
 		}
 
 		if dv, err := p.auth(ws.Request()); err != nil {
@@ -61,8 +61,8 @@ func (p *WsHandler) hdlFromGorillaWebSocket() http.HandlerFunc {
 		adapter := &gorillaWsAdapter{
 			conn:         conn,
 			txt:          p.txt,
-			writeTimeout: p.hubConfig.writeTimeout,
-			readTimeout:  p.hubConfig.readTimeout,
+			writeTimeout: p.hub.config.writeTimeout,
+			readTimeout:  p.hub.config.readTimeout,
 		}
 
 		if dv, err := p.auth(r); err != nil {
@@ -88,8 +88,8 @@ func (p *WsHandler) hdlFromCoderWebSocket() http.HandlerFunc {
 			conn:         conn,
 			ctx:          context.Background(),
 			txt:          p.txt,
-			writeTimeout: p.hubConfig.writeTimeout,
-			readTimeout:  p.hubConfig.readTimeout,
+			writeTimeout: p.hub.config.writeTimeout,
+			readTimeout:  p.hub.config.readTimeout,
 		}
 
 		if dv, err := p.auth(r); err != nil {
