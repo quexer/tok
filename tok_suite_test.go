@@ -2,6 +2,8 @@ package tok_test
 
 import (
 	"context"
+	"io"
+	"log/slog"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -13,6 +15,10 @@ func TestTok(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Tok Suite")
 }
+
+var _ = BeforeSuite(func() {
+	slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, nil)))
+})
 
 var ctx context.Context
 var ctl *gomock.Controller

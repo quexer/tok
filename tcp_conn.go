@@ -111,6 +111,7 @@ func Listen(ctx context.Context, config *HubConfig, addr string, auth TCPAuthFun
 
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
+		hub.Close()
 		return nil, fmt.Errorf("listen err: %w", err)
 	}
 
