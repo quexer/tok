@@ -144,7 +144,7 @@ func (p *Hub) run() {
 					ff.chErr <- ErrOffline
 					close(ff.chErr)
 				} else {
-					go p.cache(context.Background(), ff)
+					go p.cache(p.ctx, ff)
 				}
 			}
 		case cf := <-p.chCheck:
@@ -154,7 +154,7 @@ func (p *Hub) run() {
 		case uid := <-p.chReadSignal:
 			// only pop msg for online user
 			if len(p.cons[uid]) > 0 {
-				go p.popMsg(context.Background(), uid)
+				go p.popMsg(p.ctx, uid)
 			}
 		case uid := <-p.chKick:
 			p.innerKick(uid)
@@ -408,7 +408,7 @@ func (p *Hub) close(conn *connection) {
 
 func (p *Hub) goOnline(conn *connection) {
 	defer func() {
-		go p.tryDeliver(context.Background(), conn.uid())
+		go p.tryDeliver(p.ctx, conn.uid())
 	}()
 
 	l := p.cons[conn.uid()]

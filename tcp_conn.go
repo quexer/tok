@@ -149,7 +149,7 @@ func Listen(ctx context.Context, config *HubConfig, addr string, auth TCPAuthFun
 			adapter.readTimeout = 0
 		}
 
-		hub.RegisterConnection(context.Background(), dv, adapter)
+		hub.RegisterConnection(hub.ctx, dv, adapter)
 	}
 
 	// Close listener when hub shuts down so Accept returns an error and the loop exits.
