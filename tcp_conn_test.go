@@ -2,6 +2,7 @@ package tok_test
 
 import (
 	"context"
+	"errors"
 	"sync/atomic"
 	"time"
 
@@ -43,9 +44,25 @@ var _ = Describe("TCP Listen", func() {
 			tok.WithHubConfigReadTimeout(time.Second))
 		Expect(err).To(Succeed())
 
-		hub, err := tok.Listen(ctx, config, "invalid-addr", nil)
+		hub, err := tok.Listen(ctx, config, "invalid-addr", func([]byte) (*tok.Device, error) {
+			return tok.CreateDevice("u", ""), nil
+		})
 		Expect(err).To(HaveOccurred())
 		Expect(hub).To(BeNil())
 		Eventually(q.IsClosed).To(BeTrue())
+	})
+
+	It("returns ErrAuthRequired when auth is nil", func() {
+		q := &closeAwareQueue{}
+		config, err := tok.NewHubConfig(noopActor{},
+			tok.WithHubConfigQueue(q),
+			tok.WithHubConfigReadTimeout(time.Second))
+		Expect(err).To(Succeed())
+
+		hub, err := tok.Listen(ctx, config, "127.0.0.1:0", nil)
+		Expect(err).To(HaveOccurred())
+		Expect(errors.Is(err, tok.ErrAuthRequired)).To(BeTrue())
+		Expect(hub).To(BeNil())
+		Expect(q.IsClosed()).To(BeFalse())
 	})
 })

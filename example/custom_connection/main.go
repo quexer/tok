@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"time"
 
@@ -96,7 +97,9 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to create hub config:", err)
 	}
-	hub, _, err := tok.CreateWsHandler(context.Background(), nil, tok.WithWsHandlerHubConfig(config))
+	hub, _, err := tok.CreateWsHandler(context.Background(), func(_ *http.Request) (*tok.Device, error) {
+		return tok.CreateDevice("unix-bootstrap", "bootstrap"), nil
+	}, tok.WithWsHandlerHubConfig(config))
 	if err != nil {
 		log.Fatal("Failed to create hub:", err)
 	}

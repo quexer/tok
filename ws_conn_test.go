@@ -1,6 +1,7 @@
 package tok_test
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -33,6 +34,19 @@ var _ = Describe("WsConn", func() {
 		Ω(err).To(Succeed())
 		Ω(hub).ToNot(BeNil())
 		Ω(hdl).ToNot(BeNil())
+	})
+
+	It("CreateWsHandler should fail when auth is nil", func() {
+		hc, err := tok.NewHubConfig(mActor,
+			tok.WithHubConfigPingProducer(mPingGen))
+		Ω(err).To(Succeed())
+
+		hub, hdl, err := tok.CreateWsHandler(ctx, nil,
+			tok.WithWsHandlerHubConfig(hc))
+		Ω(err).To(HaveOccurred())
+		Ω(errors.Is(err, tok.ErrAuthRequired)).To(BeTrue())
+		Ω(hub).To(BeNil())
+		Ω(hdl).To(BeNil())
 	})
 
 	DescribeTable("CreateWsHandler with WithWsHandlerHub (no hubConfig) should not panic",

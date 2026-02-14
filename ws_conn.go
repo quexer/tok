@@ -114,8 +114,13 @@ func (p *WsHandler) hdl() http.Handler {
 
 // CreateWsHandler create websocket http handler
 // auth function is used for user authorization
+// auth is required and must not be nil.
 // Return hub and http handler
 func CreateWsHandler(ctx context.Context, auth WsAuthFunc, opts ...WsHandlerOption) (*Hub, http.Handler, error) {
+	if auth == nil {
+		return nil, nil, ErrAuthRequired
+	}
+
 	wsh := &WsHandler{
 		hub:       nil,
 		hubConfig: nil,

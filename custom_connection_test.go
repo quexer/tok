@@ -2,6 +2,7 @@ package tok_test
 
 import (
 	"io"
+	"net/http"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -37,7 +38,9 @@ var _ = Describe("Custom Connection", func() {
 			tok.WithHubConfigPingProducer(mockPing),
 			tok.WithHubConfigQueue(mockQueue))
 		Ω(err).To(Succeed())
-		hub, _, err = tok.CreateWsHandler(ctx, nil, tok.WithWsHandlerHubConfig(config))
+		hub, _, err = tok.CreateWsHandler(ctx, func(_ *http.Request) (*tok.Device, error) {
+			return tok.CreateDevice("setup-user", "setup-device"), nil
+		}, tok.WithWsHandlerHubConfig(config))
 		Ω(err).To(Succeed())
 
 		device = tok.CreateDevice("custom-user", "custom-session")
@@ -175,7 +178,9 @@ var _ = Describe("Custom Connection", func() {
 				tok.WithHubConfigPingProducer(mockPing),
 				tok.WithHubConfigQueue(mockQueue))
 			Ω(err).To(Succeed())
-			hub, _, err = tok.CreateWsHandler(ctx, nil, tok.WithWsHandlerHubConfig(config))
+			hub, _, err = tok.CreateWsHandler(ctx, func(_ *http.Request) (*tok.Device, error) {
+				return tok.CreateDevice("setup-user", "setup-device"), nil
+			}, tok.WithWsHandlerHubConfig(config))
 			Ω(err).To(Succeed())
 
 			// Setup expectations

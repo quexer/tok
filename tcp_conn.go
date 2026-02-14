@@ -102,8 +102,13 @@ func (p *tcpAdapter) ShareConn(adapter ConAdapter) bool {
 // Listen creates a TCP listener and a Hub.
 // addr is the TCP address to listen on.
 // auth is the function used for user authorization.
+// auth is required and must not be nil.
 // Returns the Hub and an error if listen failed.
 func Listen(ctx context.Context, config *HubConfig, addr string, auth TCPAuthFunc) (*Hub, error) {
+	if auth == nil {
+		return nil, ErrAuthRequired
+	}
+
 	hub, err := createHub(ctx, config)
 	if err != nil {
 		return nil, fmt.Errorf("create hub err: %w", err)

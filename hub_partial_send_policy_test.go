@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/http"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -115,7 +116,9 @@ var _ = Describe("Hub partial send policy", func() {
 		config, err := tok.NewHubConfig(noopActor{}, opts...)
 		Expect(err).To(Succeed())
 
-		hub, _, err = tok.CreateWsHandler(ctx, nil, tok.WithWsHandlerHubConfig(config))
+		hub, _, err = tok.CreateWsHandler(ctx, func(_ *http.Request) (*tok.Device, error) {
+			return tok.CreateDevice("setup-user", "setup-device"), nil
+		}, tok.WithWsHandlerHubConfig(config))
 		Expect(err).To(Succeed())
 	}
 
