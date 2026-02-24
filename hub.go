@@ -3,18 +3,13 @@ package tok
 import (
 	"context"
 	"errors"
-	"expvar"
 	"fmt"
 	"log/slog"
 	"time"
-)
 
-var (
-	expOnline = expvar.NewInt("tokOnline")
-	expUp     = expvar.NewInt("tokUp")
-	expDown   = expvar.NewInt("tokDown")
-	expEnq    = expvar.NewInt("tokEnq")
-	expDeq    = expvar.NewInt("tokDeq")
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type checkFrame struct {
@@ -48,6 +43,7 @@ type Hub struct {
 	ctx           context.Context    // hub lifecycle context
 	cancel        context.CancelFunc // cancel function to trigger shutdown
 	done          chan struct{}      // closed when run() exits
+	inst          *instruments       // OTel instruments
 }
 
 func createHub(ctx context.Context, config *HubConfig) (*Hub, error) {
@@ -74,6 +70,7 @@ func createHub(ctx context.Context, config *HubConfig) (*Hub, error) {
 		ctx:           ctx,
 		cancel:        cancel,
 		done:          make(chan struct{}),
+		inst:          newInstruments(config.meterProvider, config.tracerProvider),
 	}
 	go hub.run()
 	return hub, nil
@@ -110,23 +107,29 @@ func (p *Hub) run() {
 		case state := <-p.chConState:
 			slog.Debug("connection state change", "online", state.online, "con", &state.con)
 
+			prevCount := int64(len(p.cons))
 			if state.online {
 				p.goOnline(state.con)
 			} else {
 				p.goOffline(state.con)
 			}
-			count := int64(len(p.cons))
-			expOnline.Set(count)
+			delta := int64(len(p.cons)) - prevCount
+			if delta != 0 {
+				p.inst.connOnline.Add(p.ctx, delta)
+			}
 		case f := <-p.chUp:
 			slog.Debug("up data")
-			expUp.Add(1)
+			p.inst.messagesUp.Add(p.ctx, 1)
 			go func() {
-				// default is f.data
+				_, span := p.inst.tracer.Start(context.Background(), "tok.Receive")
+				defer span.End()
+
 				data := f.data
-				// Use the optional BeforeReceive handler if provided
 				if hdl := p.config.hdlBeforeReceive; hdl != nil {
 					if b, err := hdl.BeforeReceive(f.dv, f.data); err != nil {
 						slog.Error("before receive failed", "err", err)
+						span.SetStatus(codes.Error, err.Error())
+						span.RecordError(err)
 						return
 					} else {
 						data = b
@@ -183,7 +186,7 @@ func (p *Hub) popMsg(ctx context.Context, uid any) {
 			// no more data in queue
 			return
 		}
-		expDeq.Add(1)
+		p.inst.queueDeq.Add(ctx, 1)
 		if err := p.Send(ctx, uid, b, 0); err != nil {
 			if err := p.config.q.Enq(ctx, uid, b); err != nil {
 				slog.Warn("re-cache failed", "err", err, "uid", uid)
@@ -200,6 +203,14 @@ func (p *Hub) popMsg(ctx context.Context, uid any) {
 // If ttl > 0 and user is online, cache behavior on send failure depends on HubConfig PartialSendPolicy.
 // Returns ErrHubClosed if the hub has been closed.
 func (p *Hub) Send(ctx context.Context, to any, b []byte, ttl uint32) error {
+	ctx, span := p.inst.tracer.Start(ctx, "tok.Send",
+		trace.WithAttributes(attribute.Int("ttl", int(ttl))))
+	defer span.End()
+	start := time.Now()
+	defer func() {
+		p.inst.sendDuration.Record(ctx, time.Since(start).Seconds())
+	}()
+
 	// Use mctx (not shadowing ctx) because p.cache below needs the original caller ctx.
 	mctx, cancel := p.withHubCtx(ctx)
 	defer cancel()
@@ -208,18 +219,26 @@ func (p *Hub) Send(ctx context.Context, to any, b []byte, ttl uint32) error {
 	select {
 	case p.chDown <- ff:
 	case <-mctx.Done():
-		return context.Cause(mctx)
+		err := context.Cause(mctx)
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+		return err
 	}
 
 	var err error
 	select {
 	case err = <-ff.chErr:
 	case <-mctx.Done():
-		return context.Cause(mctx)
+		err = context.Cause(mctx)
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+		return err
 	}
 
 	// if cache failed, return err directly
 	if errors.Is(err, ErrCacheFailed) {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
 		return err
 	}
 
@@ -236,10 +255,21 @@ func (p *Hub) Send(ctx context.Context, to any, b []byte, ttl uint32) error {
 
 		select {
 		case cacheErr := <-cacheFF.chErr:
+			if cacheErr != nil {
+				span.SetStatus(codes.Error, cacheErr.Error())
+				span.RecordError(cacheErr)
+			}
 			return cacheErr
 		case <-mctx.Done():
-			return context.Cause(mctx)
+			err = context.Cause(mctx)
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
+			return err
 		}
+	}
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
 	}
 	return err
 }
@@ -300,21 +330,29 @@ func (p *Hub) Online(ctx context.Context) []any {
 }
 
 func (p *Hub) cache(ctx context.Context, ff *downFrame) {
+	ctx, span := p.inst.tracer.Start(ctx, "tok.Cache")
+	defer span.End()
 	defer close(ff.chErr)
-	expEnq.Add(1)
+	p.inst.queueEnq.Add(ctx, 1)
 	if p.config.q == nil {
-		ff.chErr <- fmt.Errorf("%w: %w", ErrCacheFailed, ErrQueueRequired)
+		err := fmt.Errorf("%w: %w", ErrCacheFailed, ErrQueueRequired)
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+		ff.chErr <- err
 		return
 	}
 
 	if err := p.config.q.Enq(ctx, ff.uid, ff.data, ff.ttl); err != nil {
-		ff.chErr <- fmt.Errorf("%w: %w", ErrCacheFailed, err)
+		wrapped := fmt.Errorf("%w: %w", ErrCacheFailed, err)
+		span.SetStatus(codes.Error, wrapped.Error())
+		span.RecordError(wrapped)
+		ff.chErr <- wrapped
 	}
 }
 
 func (p *Hub) down(f *downFrame, conns []*connection) {
 	defer close(f.chErr)
-	expDown.Add(1)
+	p.inst.messagesDown.Add(context.Background(), 1)
 
 	var lastErr error
 	var sent int

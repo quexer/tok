@@ -13,6 +13,7 @@ import (
 
 	coderws "github.com/coder/websocket"
 	gorillaws "github.com/gorilla/websocket"
+	"go.opentelemetry.io/otel/codes"
 	xwebsocket "golang.org/x/net/websocket"
 )
 
@@ -27,6 +28,9 @@ type WsHandler struct {
 // hdlFromXwebSocket returns an x/web/websocket handler function that handles incoming websocket connections.
 func (p *WsHandler) hdlFromXwebSocket() xwebsocket.Handler {
 	return func(ws *xwebsocket.Conn) {
+		_, span := p.hub.inst.tracer.Start(ws.Request().Context(), "tok.Auth")
+		defer span.End()
+
 		adapter := &xWsAdapter{
 			conn:         ws,
 			txt:          p.txt,
@@ -36,6 +40,8 @@ func (p *WsHandler) hdlFromXwebSocket() xwebsocket.Handler {
 
 		if dv, err := p.auth(ws.Request()); err != nil {
 			slog.Warn("websocket auth err", "err", err)
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
 			_ = adapter.Close()
 		} else {
 			p.hub.RegisterConnection(p.hub.ctx, dv, adapter)
@@ -52,9 +58,14 @@ func (p *WsHandler) hdlFromGorillaWebSocket() http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		_, span := p.hub.inst.tracer.Start(r.Context(), "tok.Auth")
+		defer span.End()
+
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			slog.Warn("gorilla websocket upgrade err", "err", err)
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
 			return
 		}
 
@@ -67,6 +78,8 @@ func (p *WsHandler) hdlFromGorillaWebSocket() http.HandlerFunc {
 
 		if dv, err := p.auth(r); err != nil {
 			slog.Warn("gorilla websocket auth err", "err", err)
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
 			_ = adapter.Close()
 		} else {
 			p.hub.RegisterConnection(p.hub.ctx, dv, adapter)
@@ -77,10 +90,14 @@ func (p *WsHandler) hdlFromGorillaWebSocket() http.HandlerFunc {
 // hdlFromCoderWebSocket returns a coder/websocket handler function that handles incoming websocket connections.
 func (p *WsHandler) hdlFromCoderWebSocket() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Accept WebSocket connection with default options
+		_, span := p.hub.inst.tracer.Start(r.Context(), "tok.Auth")
+		defer span.End()
+
 		conn, err := coderws.Accept(w, r, nil)
 		if err != nil {
 			slog.Warn("coder websocket accept err", "err", err)
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
 			return
 		}
 
@@ -94,6 +111,8 @@ func (p *WsHandler) hdlFromCoderWebSocket() http.HandlerFunc {
 
 		if dv, err := p.auth(r); err != nil {
 			slog.Warn("coder websocket auth err", "err", err)
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
 			_ = adapter.Close()
 		} else {
 			p.hub.RegisterConnection(p.hub.ctx, dv, adapter)

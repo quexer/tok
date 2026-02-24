@@ -13,6 +13,8 @@ import (
 	"log/slog"
 	"net"
 	"time"
+
+	"go.opentelemetry.io/otel/codes"
 )
 
 const (
@@ -121,14 +123,18 @@ func Listen(ctx context.Context, config *HubConfig, addr string, auth TCPAuthFun
 	}
 
 	initAuth := func(conn net.Conn) {
+		_, span := hub.inst.tracer.Start(context.Background(), "tok.Auth")
+		defer span.End()
+
 		slog.Debug("raw tcp connection", "addr", conn.RemoteAddr())
 		if err := conn.SetReadDeadline(time.Now().Add(config.authTimeout)); err != nil {
 			slog.Warn("set auth deadline err", "err", err)
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
 			_ = conn.Close()
 			return
 		}
 
-		// set auth timeout at auth stage
 		adapter := &tcpAdapter{
 			conn:         conn,
 			readTimeout:  config.authTimeout,
@@ -137,6 +143,8 @@ func Listen(ctx context.Context, config *HubConfig, addr string, auth TCPAuthFun
 		b, err := adapter.Read()
 		if err != nil {
 			slog.Warn("tcp auth, read err", "err", err)
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
 			_ = adapter.Close()
 			return
 		}
@@ -144,6 +152,8 @@ func Listen(ctx context.Context, config *HubConfig, addr string, auth TCPAuthFun
 		dv, err := auth(b)
 		if err != nil {
 			slog.Warn("tcp auth, auth err", "err", err)
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
 			_ = adapter.Close()
 			return
 		}

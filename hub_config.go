@@ -3,6 +3,9 @@ package tok
 import (
 	"errors"
 	"time"
+
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // PartialSendPolicy controls how Send with ttl > 0 behaves when sending to multiple online connections partially fails.
@@ -34,6 +37,8 @@ type HubConfig struct {
 	writeTimeout       time.Duration        // Write timeout duration, default 1m
 	readTimeout        time.Duration        // Read timeout duration, default 0s, means no read timeout
 	partialSendPolicy  PartialSendPolicy    // strategy for online partial send failures when ttl > 0
+	meterProvider      metric.MeterProvider // optional OTel MeterProvider, defaults to global
+	tracerProvider     trace.TracerProvider // optional OTel TracerProvider, defaults to global
 }
 
 // NewHubConfig create new HubConfig
@@ -152,5 +157,21 @@ func WithHubConfigByeGenerator(byeGenerator ByeGenerator) HubConfigOption {
 func WithHubConfigPartialSendPolicy(policy PartialSendPolicy) HubConfigOption {
 	return func(hc *HubConfig) {
 		hc.partialSendPolicy = policy
+	}
+}
+
+// WithMeterProvider sets the OTel MeterProvider for hub metrics.
+// If not set, the global MeterProvider is used (noop by default).
+func WithMeterProvider(mp metric.MeterProvider) HubConfigOption {
+	return func(hc *HubConfig) {
+		hc.meterProvider = mp
+	}
+}
+
+// WithTracerProvider sets the OTel TracerProvider for hub tracing.
+// If not set, the global TracerProvider is used (noop by default).
+func WithTracerProvider(tp trace.TracerProvider) HubConfigOption {
+	return func(hc *HubConfig) {
+		hc.tracerProvider = tp
 	}
 }
