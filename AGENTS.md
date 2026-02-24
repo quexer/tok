@@ -27,7 +27,7 @@ ginkgo -r -focus="<Describe>/<It>"
 ## Code Style Guidelines
 
 ### Project Overview
-This is a Go library ("tok" - talk) for creating IM applications with support for TCP and WebSocket connections, featuring a pluggable ConAdapter interface for custom connection types.
+This is a Go library ("tok" - talk) for creating IM applications with support for TCP and WebSocket connections, featuring a pluggable ConAdapter interface for custom connection types. The library includes built-in OpenTelemetry observability (metrics and tracing).
 
 ### Import Organization
 1. Standard library imports first
@@ -143,6 +143,21 @@ func WithHubConfigQueue(q Queue) HubConfigOption {
 - Ensure proper cleanup with `defer` and context cancellation
 - Use atomic operations for exactly-once semantics (e.g., triggerOffline)
 
+### Observability (OpenTelemetry)
+- All OTel instruments are defined in `otel.go` within the `instruments` struct
+- `newInstruments()` creates meters and tracers; falls back to global providers if none supplied
+- Configuration via `WithMeterProvider()` and `WithTracerProvider()` functional options on `HubConfig`
+- Metric names use `tok.` prefix with dot-separated hierarchy (e.g., `tok.connections.online`, `tok.messages.up`)
+- Trace span names use `tok.` prefix (e.g., `tok.Auth`, `tok.Send`, `tok.Receive`, `tok.Cache`)
+- Metrics:
+  - `tok.connections.online` (UpDownCounter) — current online connections
+  - `tok.messages.up` / `tok.messages.down` (Counter) — upstream/downstream message counts
+  - `tok.queue.enqueue` / `tok.queue.dequeue` (Counter) — offline queue operations
+  - `tok.send.duration` (Histogram, seconds) — Hub.Send latency
+- Traces instrument auth, send, receive, and cache code paths
+- When adding new instruments, follow the existing pattern in `otel.go`: create via `m.Int64Counter()` / `m.Float64Histogram()` etc., then add to `instruments` struct
+- Always pass `context.Context` to `span.End()` and metric recording calls
+
 ### Logging
 - Use `log/slog` for structured logging
 - Use appropriate log levels: Debug, Info, Warn, Error
@@ -172,6 +187,7 @@ func (p *Hub) Send(ctx context.Context, to interface{}, b []byte, ttl uint32) er
 - `device.go` - Device abstraction
 - `q.go` - Queue interface
 - `memory_q.go` - In-memory queue implementation
+- `otel.go` - OpenTelemetry instruments (metrics and traces)
 - `doc.go` - Package documentation
 - `mocks/` - Generated mocks
 - `example/` - Example implementations

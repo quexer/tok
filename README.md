@@ -20,6 +20,39 @@ Features
 - Easy integration with custom authentication logic.
 - Cluster support available via [quexer/cluster](https://github.com/quexer/cluster).
 - Graceful connection lifecycle management with context-based cancellation.
+- Built-in OpenTelemetry observability: metrics and traces for connections, messages, and queue operations.
+
+Observability
+-------------
+
+tok has built-in [OpenTelemetry](https://opentelemetry.io/) support for metrics and tracing. By default it uses the global noop providers; supply your own to enable observability:
+
+```go
+cfg, _ := tok.NewHubConfig(actor,
+    tok.WithMeterProvider(myMeterProvider),
+    tok.WithTracerProvider(myTracerProvider),
+)
+```
+
+### Metrics
+
+| Name | Type | Description |
+|------|------|-------------|
+| `tok.connections.online` | UpDownCounter | Current number of online connections |
+| `tok.messages.up` | Counter | Total messages received from clients |
+| `tok.messages.down` | Counter | Total messages sent to clients |
+| `tok.queue.enqueue` | Counter | Total messages enqueued to offline queue |
+| `tok.queue.dequeue` | Counter | Total messages dequeued from offline queue |
+| `tok.send.duration` | Histogram (seconds) | Duration of Hub.Send operations |
+
+### Traces
+
+| Span Name | Location |
+|-----------|----------|
+| `tok.Auth` | TCP/WebSocket authentication phase |
+| `tok.Send` | Hub.Send message delivery |
+| `tok.Receive` | Upstream message handling (Actor.OnReceive) |
+| `tok.Cache` | Offline message enqueue |
 
 WebSocket Engine Support
 -----------------------
@@ -121,6 +154,15 @@ Architecture
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 
+┌─────────────────────────────────────────────────────────────────────────┐
+│                       Observability (OpenTelemetry)                     │
+│                                                                         │
+│  Metrics: tok.connections.online, tok.messages.up/down,                 │
+│           tok.queue.enqueue/dequeue, tok.send.duration                  │
+│  Traces:  tok.Auth, tok.Send, tok.Receive, tok.Cache                   │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
                                Message Flow
                               ===============
 
@@ -150,5 +192,6 @@ Structure
 - `ws_coder.go`    : `github.com/coder/websocket` adapter.
 - `ws_option.go`   : WebSocket engine selection and options.
 - `memory_q.go`    : Built-in in-memory message queue for offline messages.
+- `otel.go`        : OpenTelemetry instruments (metrics and traces).
 - `device.go`      : Device abstraction for user device.
 - `example/`       : Example server and client implementations. [See examples](./example/)
