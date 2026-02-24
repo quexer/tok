@@ -148,11 +148,7 @@ func Listen(ctx context.Context, config *HubConfig, addr string, auth TCPAuthFun
 			return
 		}
 
-		if config.readTimeout > 0 {
-			adapter.readTimeout = config.readTimeout
-		} else {
-			adapter.readTimeout = 0
-		}
+		adapter.readTimeout = max(config.readTimeout, 0)
 
 		hub.RegisterConnection(hub.ctx, dv, adapter)
 	}

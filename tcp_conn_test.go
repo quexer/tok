@@ -16,15 +16,15 @@ type closeAwareQueue struct {
 	closed atomic.Bool
 }
 
-func (q *closeAwareQueue) Enq(_ context.Context, _ interface{}, _ []byte, _ ...uint32) error {
+func (q *closeAwareQueue) Enq(_ context.Context, _ any, _ []byte, _ ...uint32) error {
 	return nil
 }
 
-func (q *closeAwareQueue) Deq(_ context.Context, _ interface{}) ([]byte, error) {
+func (q *closeAwareQueue) Deq(_ context.Context, _ any) ([]byte, error) {
 	return nil, nil
 }
 
-func (q *closeAwareQueue) Len(_ context.Context, _ interface{}) (int, error) {
+func (q *closeAwareQueue) Len(_ context.Context, _ any) (int, error) {
 	return 0, nil
 }
 

@@ -18,15 +18,15 @@ var (
 )
 
 type checkFrame struct {
-	uid    interface{} // user id
-	chBool chan bool   // channel to return online status
+	uid    any       // user id
+	chBool chan bool // channel to return online status
 }
 
 type downFrame struct {
-	uid   interface{} // user id
-	ttl   uint32      // ttl in seconds
-	data  []byte      // data to send
-	chErr chan error  // channel to read send result from
+	uid   any        // user id
+	ttl   uint32     // ttl in seconds
+	data  []byte     // data to send
+	chErr chan error // channel to read send result from
 }
 
 type upFrame struct {
@@ -36,13 +36,13 @@ type upFrame struct {
 
 // Hub core of tok, dispatch message between connections
 type Hub struct {
-	cons          map[interface{}][]*connection // connection list
+	cons          map[any][]*connection // connection list
 	chUp          chan *upFrame
 	chDown        chan *downFrame
 	chConState    chan *conState
-	chReadSignal  chan interface{}
-	chKick        chan interface{}
-	chQueryOnline chan chan []interface{}
+	chReadSignal  chan any
+	chKick        chan any
+	chQueryOnline chan chan []any
 	chCheck       chan *checkFrame
 	config        *HubConfig         // config for hub
 	ctx           context.Context    // hub lifecycle context
@@ -62,13 +62,13 @@ func createHub(ctx context.Context, config *HubConfig) (*Hub, error) {
 
 	ctx, cancel := context.WithCancel(ctx)
 	hub := &Hub{
-		cons:          make(map[interface{}][]*connection),
+		cons:          make(map[any][]*connection),
 		chUp:          make(chan *upFrame),
 		chDown:        make(chan *downFrame),
 		chConState:    make(chan *conState),
-		chReadSignal:  make(chan interface{}),
-		chKick:        make(chan interface{}),
-		chQueryOnline: make(chan chan []interface{}),
+		chReadSignal:  make(chan any),
+		chKick:        make(chan any),
+		chQueryOnline: make(chan chan []any),
 		chCheck:       make(chan *checkFrame),
 		config:        config,
 		ctx:           ctx,
@@ -105,7 +105,7 @@ func (p *Hub) run() {
 					p.close(conn)
 				}
 			}
-			p.cons = make(map[interface{}][]*connection)
+			p.cons = make(map[any][]*connection)
 			return
 		case state := <-p.chConState:
 			slog.Debug("connection state change", "online", state.online, "con", &state.con)
@@ -159,7 +159,7 @@ func (p *Hub) run() {
 		case uid := <-p.chKick:
 			p.innerKick(uid)
 		case chOnline := <-p.chQueryOnline:
-			result := make([]interface{}, 0, len(p.cons))
+			result := make([]any, 0, len(p.cons))
 			for uid := range p.cons {
 				result = append(result, uid)
 			}
@@ -169,7 +169,7 @@ func (p *Hub) run() {
 	}
 }
 
-func (p *Hub) popMsg(ctx context.Context, uid interface{}) {
+func (p *Hub) popMsg(ctx context.Context, uid any) {
 	if p.config.q == nil {
 		return
 	}
@@ -199,7 +199,7 @@ func (p *Hub) popMsg(ctx context.Context, uid interface{}) {
 // If ttl > 0 and user is offline, message will be cached for ttl seconds.
 // If ttl > 0 and user is online, cache behavior on send failure depends on HubConfig PartialSendPolicy.
 // Returns ErrHubClosed if the hub has been closed.
-func (p *Hub) Send(ctx context.Context, to interface{}, b []byte, ttl uint32) error {
+func (p *Hub) Send(ctx context.Context, to any, b []byte, ttl uint32) error {
 	// Use mctx (not shadowing ctx) because p.cache below needs the original caller ctx.
 	mctx, cancel := p.withHubCtx(ctx)
 	defer cancel()
@@ -259,7 +259,7 @@ func (p *Hub) shouldCacheOnSendError(err error) bool {
 
 // CheckOnline return whether user online or not.
 // Returns false if the hub has been closed.
-func (p *Hub) CheckOnline(ctx context.Context, uid interface{}) bool {
+func (p *Hub) CheckOnline(ctx context.Context, uid any) bool {
 	ctx, cancel := p.withHubCtx(ctx)
 	defer cancel()
 
@@ -280,11 +280,11 @@ func (p *Hub) CheckOnline(ctx context.Context, uid interface{}) bool {
 
 // Online query online user list.
 // Returns nil if the hub has been closed.
-func (p *Hub) Online(ctx context.Context) []interface{} {
+func (p *Hub) Online(ctx context.Context) []any {
 	ctx, cancel := p.withHubCtx(ctx)
 	defer cancel()
 
-	ch := make(chan []interface{}, 1)
+	ch := make(chan []any, 1)
 	select {
 	case p.chQueryOnline <- ch:
 	case <-ctx.Done():
@@ -367,7 +367,7 @@ func (p *Hub) goOffline(conn *connection) {
 	go p.close(conn)
 }
 
-func (p *Hub) innerKick(uid interface{}) {
+func (p *Hub) innerKick(uid any) {
 	for _, conn := range p.cons[uid] {
 		go p.close(conn)
 	}
@@ -437,7 +437,7 @@ func (p *Hub) goOnline(conn *connection) {
 }
 
 // tryDeliver try to deliver all messages, if uid is online
-func (p *Hub) tryDeliver(ctx context.Context, uid interface{}) {
+func (p *Hub) tryDeliver(ctx context.Context, uid any) {
 	select {
 	case p.chReadSignal <- uid:
 	case <-p.ctx.Done():
@@ -446,7 +446,7 @@ func (p *Hub) tryDeliver(ctx context.Context, uid interface{}) {
 
 // Kick all connections of uid.
 // No-op if the hub has been closed.
-func (p *Hub) Kick(ctx context.Context, uid interface{}) {
+func (p *Hub) Kick(ctx context.Context, uid any) {
 	ctx, cancel := p.withHubCtx(ctx)
 	defer cancel()
 

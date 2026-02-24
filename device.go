@@ -5,19 +5,19 @@ import (
 )
 
 // CreateDevice uid is user id, id is uuid of this device(could be empty)
-func CreateDevice(uid interface{}, id string) *Device {
+func CreateDevice(uid any, id string) *Device {
 	return &Device{uid: uid, id: id}
 }
 
 // Device device struct
 type Device struct {
-	uid  interface{}
+	uid  any
 	id   string
 	meta sync.Map
 }
 
 // UID return user id
-func (p *Device) UID() interface{} {
+func (p *Device) UID() any {
 	return p.uid
 }
 

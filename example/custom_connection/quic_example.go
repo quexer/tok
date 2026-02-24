@@ -1,5 +1,4 @@
 //go:build ignore
-// +build ignore
 
 // This file demonstrates how to implement a QUIC adapter for tok.
 // To use this example, you need to install the QUIC library:
@@ -8,12 +7,9 @@
 package main
 
 import (
-	"context"
 	"crypto/tls"
 	"encoding/binary"
-	"fmt"
 	"io"
-	"log"
 
 	"github.com/quexer/tok"
 	// "github.com/quic-go/quic-go"

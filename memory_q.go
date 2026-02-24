@@ -40,7 +40,7 @@ func NewMemoryQueue() *MemoryQueue {
 // Cleanup removes empty queues that have been idle longer than IdleTimeout.
 func (mq *MemoryQueue) Cleanup() {
 	now := time.Now()
-	mq.queues.Range(func(key, value interface{}) bool {
+	mq.queues.Range(func(key, value any) bool {
 		queue := value.(*userQueue)
 		queue.mu.Lock()
 		if len(queue.items) == 0 && now.Sub(queue.lastAccess) > mq.IdleTimeout {
@@ -74,7 +74,7 @@ func (mq *MemoryQueue) Close() {
 	}
 }
 
-func (mq *MemoryQueue) Enq(ctx context.Context, uid interface{}, data []byte, ttl ...uint32) error {
+func (mq *MemoryQueue) Enq(ctx context.Context, uid any, data []byte, ttl ...uint32) error {
 	for {
 		qu, _ := mq.queues.LoadOrStore(uid, &userQueue{lastAccess: time.Now()})
 		queue := qu.(*userQueue)
@@ -105,7 +105,7 @@ func (mq *MemoryQueue) Enq(ctx context.Context, uid interface{}, data []byte, tt
 	}
 }
 
-func (mq *MemoryQueue) Deq(ctx context.Context, uid interface{}) ([]byte, error) {
+func (mq *MemoryQueue) Deq(ctx context.Context, uid any) ([]byte, error) {
 	qu, ok := mq.queues.Load(uid)
 	if !ok {
 		return nil, nil
@@ -144,7 +144,7 @@ func (mq *MemoryQueue) clearExpireItem(queue *userQueue) {
 	queue.items = validItems
 }
 
-func (mq *MemoryQueue) Len(ctx context.Context, uid interface{}) (int, error) {
+func (mq *MemoryQueue) Len(ctx context.Context, uid any) (int, error) {
 	qu, ok := mq.queues.Load(uid)
 	if !ok {
 		return 0, nil

@@ -88,13 +88,13 @@ var _ = Describe("MemoryQ", func() {
 		go func() {
 			defer GinkgoRecover()
 			defer wg.Done()
-			for i := 0; i < 10000; i++ {
+			for i := range 10000 {
 				// Make queue empty and eligible for cleanup
 				_ = mq.Enq(ctx, uid, []byte("setup"))
 				_, _ = mq.Deq(ctx, uid)
 
 				// Enq new data — races with Cleanup deleting the key
-				_ = mq.Enq(ctx, uid, []byte(fmt.Sprintf("important-%d", i)))
+				_ = mq.Enq(ctx, uid, fmt.Appendf(nil, "important-%d", i))
 
 				// Verify: Len must be > 0 after a successful Enq
 				n, _ := mq.Len(ctx, uid)

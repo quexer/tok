@@ -24,18 +24,18 @@ type recordingQueue struct {
 	enqs int
 }
 
-func (q *recordingQueue) Enq(_ context.Context, _ interface{}, _ []byte, _ ...uint32) error {
+func (q *recordingQueue) Enq(_ context.Context, _ any, _ []byte, _ ...uint32) error {
 	q.mu.Lock()
 	q.enqs++
 	q.mu.Unlock()
 	return nil
 }
 
-func (q *recordingQueue) Deq(_ context.Context, _ interface{}) ([]byte, error) {
+func (q *recordingQueue) Deq(_ context.Context, _ any) ([]byte, error) {
 	return nil, nil
 }
 
-func (q *recordingQueue) Len(_ context.Context, _ interface{}) (int, error) {
+func (q *recordingQueue) Len(_ context.Context, _ any) (int, error) {
 	return 0, nil
 }
 

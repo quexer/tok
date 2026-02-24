@@ -67,7 +67,7 @@ type ConAdapter interface {
 	ShareConn(adapter ConAdapter) bool
 }
 
-func (conn *connection) uid() interface{} {
+func (conn *connection) uid() any {
 	return conn.dv.UID()
 }
 
